@@ -1,0 +1,24 @@
+{% extends "base/base.html" %}
+
+{% block title %}Login - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 480px;">
+    <h1 class="h3 mb-4 text-center">Login</h1>
+    {% if form.errors %}
+        <div class="alert alert-danger">Please check your username and password and try again.</div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label" for="id_username">Username</label>
+            {{ form.username }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="id_password">Password</label>
+            {{ form.password }}
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+    </form>
+</div>
+{% endblock %}

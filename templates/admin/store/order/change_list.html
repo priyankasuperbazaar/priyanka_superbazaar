@@ -1,0 +1,71 @@
+{% extends "admin/change_list.html" %}
+
+{% block result_list %}
+    <div class="results">
+        <h2>Order Statistics</h2>
+        <div class="dashboard" style="margin-bottom: 20px; padding: 20px; background: #f8f8f8; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                <div style="flex: 1; margin: 10px; padding: 15px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h3>Total Orders</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #417690;">{{ cl.result_count|stringformat:",d" }}</p>
+                </div>
+                <div style="flex: 1; margin: 10px; padding: 15px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h3>Total Revenue</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #417690;">₹{{ total_revenue|floatformat:2 }}</p>
+                </div>
+                <div style="flex: 1; margin: 10px; padding: 15px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h3>Avg. Order Value</h3>
+                    <p style="font-size: 24px; font-weight: bold; color: #417690;">₹{{ avg_order_value|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 20px 0; display: flex; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 300px; margin: 10px; padding: 15px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h3>Sales by Status</h3>
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in sales_by_status %}
+                        <tr>
+                            <td>{{ stat.status|title }}</td>
+                            <td>{{ stat.count|stringformat:",d" }}</td>
+                            <td>₹{{ stat.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="flex: 1; min-width: 300px; margin: 10px; padding: 15px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h3>Top Selling Products</h3>
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in top_products %}
+                        <tr>
+                            <td>{{ product.product__name|truncatechars:30 }}</td>
+                            <td>{{ product.quantity|stringformat:",d" }}</td>
+                            <td>₹{{ product.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {{ block.super }}
+{% endblock %}

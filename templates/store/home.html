@@ -1,0 +1,346 @@
+ {% extends "base/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=1600');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        margin-bottom: 4rem;
+    }
+    .hero-content {
+        max-width: 600px;
+    }
+    .category-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .category-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: #0d6efd;
+    }
+    .feature-box {
+        text-align: center;
+        padding: 2rem 1rem;
+        border-radius: 10px;
+        background: #f8f9fa;
+        height: 100%;
+        transition: all 0.3s;
+    }
+    .feature-box:hover {
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    .testimonial-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s;
+    }
+    .testimonial-card:hover {
+        transform: translateY(-5px);
+    }
+    .newsletter-section {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        padding: 4rem 0;
+        border-radius: 10px;
+        margin: 4rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="display-4 fw-bold mb-4">Fresh Groceries Delivered to Your Doorstep</h1>
+            <p class="lead mb-4">Experience the convenience of online grocery shopping with Priyanka Superbazaar. We bring the freshest fruits, vegetables, and daily essentials right to your home.</p>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{% url 'store:product-list' %}" class="btn btn-light btn-lg px-4">Shop Now <i class="fas fa-arrow-right ms-2"></i></a>
+                <a href="#categories" class="btn btn-outline-light btn-lg px-4">Explore Categories</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="container mb-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-box">
+                <div class="mb-3">
+                    <i class="fas fa-truck fa-2x text-primary"></i>
+                </div>
+                <h5>Fast Delivery</h5>
+                <p class="text-muted mb-0">Quick and reliable delivery to your doorstep</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box">
+                <div class="mb-3">
+                    <i class="fas fa-leaf fa-2x text-success"></i>
+                </div>
+                <h5>Fresh Products</h5>
+                <p class="text-muted mb-0">100% fresh and high-quality products</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-box">
+                <div class="mb-3">
+                    <i class="fas fa-headset fa-2x text-info"></i>
+                </div>
+                <h5>24/7 Support</h5>
+                <p class="text-muted mb-0">Dedicated customer support team</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container pb-5">
+    {# Offers section driven from admin (Offer model) #}
+    {% if offers %}
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">Today&apos;s Offers</h2>
+        </div>
+        <div class="row g-3">
+            {% for offer in offers %}
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        {% if offer.image %}
+                            <img src="{{ offer.image.url }}" class="card-img-top" alt="{{ offer.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ offer.title }}</h5>
+                            {% if offer.subtitle %}
+                                <p class="card-text text-muted">{{ offer.subtitle }}</p>
+                            {% endif %}
+                            {% if offer.button_url %}
+                                <a href="{{ offer.button_url }}" class="btn btn-sm btn-primary">{{ offer.button_text }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Categories Section -->
+    {% if categories %}
+    <section id="categories" class="container mb-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Shop by Category</h2>
+            <p class="text-muted">Browse through our wide range of categories</p>
+            <div class="divider mx-auto bg-primary" style="height: 3px; width: 70px;"></div>
+        </div>
+        <div class="row g-4">
+            {% for cat in categories|slice:":8" %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ cat.get_absolute_url }}" class="text-decoration-none">
+                    <div class="card category-card h-100 text-center p-4">
+                        <div class="category-icon">
+                            <i class="fas fa-{% cycle 'apple-alt' 'carrot' 'drumstick-bite' 'fish' 'egg' 'cheese' 'wine-bottle' 'bread-slice' %}"></i>
+                        </div>
+                        <div class="card-body p-0">
+                            <h5 class="card-title mb-0">{{ cat.name }}</h5>
+                            <p class="text-muted small mt-2">{{ cat.products.count }} items</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{% url 'store:product-list' %}" class="btn btn-outline-primary px-4">View All Categories</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Featured Products -->
+    {% if featured_products %}
+    <section class="container mb-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Featured Deals</h2>
+            <p class="text-muted">Special offers just for you</p>
+            <div class="divider mx-auto bg-warning" style="height: 3px; width: 70px;"></div>
+        </div>
+        <div class="row g-3">
+            {% for product in featured_products %}
+                <div class="col-6 col-md-3">
+                    <div class="card h-100">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ product.name }}">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ product.name }}</h6>
+                            <p class="mb-1">
+                                {% if product.discount_price %}
+                                    <span class="text-muted text-decoration-line-through">₹{{ product.price }}</span>
+                                    <span class="fw-bold text-danger ms-1">₹{{ product.discount_price }}</span>
+                                {% else %}
+                                    <span class="fw-bold">₹{{ product.price }}</span>
+                                {% endif %}
+                            </p>
+                            <div class="mt-auto d-grid gap-2">
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <form method="post" action="{% url 'store:cart_add' product.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-sm btn-primary">Add to Cart</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# Latest products #}
+    {% if latest_products %}
+    <!-- New Arrivals -->
+    <section class="container mb-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">New Arrivals</h2>
+            <p class="text-muted">Discover our latest products</p>
+            <div class="divider mx-auto bg-success" style="height: 3px; width: 70px;"></div>
+        </div>
+        <div class="row g-3">
+            {% for product in latest_products %}
+                <div class="col-6 col-md-3">
+                    <div class="card h-100">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ product.name }}">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ product.name }}</h6>
+                            <p class="mb-1">
+                                {% if product.discount_price %}
+                                    <span class="text-muted text-decoration-line-through">₹{{ product.price }}</span>
+                                    <span class="fw-bold text-danger ms-1">₹{{ product.discount_price }}</span>
+                                {% else %}
+                                    <span class="fw-bold">₹{{ product.price }}</span>
+                                {% endif %}
+                            </p>
+                            <div class="mt-auto d-grid gap-2">
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <form method="post" action="{% url 'store:cart_add' product.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-sm btn-primary">Add to Cart</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    </div>
+    
+    <!-- Testimonials -->
+    <section class="container my-5 py-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">What Our Customers Say</h2>
+            <p class="text-muted">Don't just take our word for it</p>
+            <div class="divider mx-auto bg-info" style="height: 3px; width: 70px;"></div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/43.jpg" class="rounded-circle me-3" width="60" height="60" alt="Customer">
+                        <div>
+                            <h6 class="mb-0">Priya Sharma</h6>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"The quality of fruits and vegetables is always fresh. Delivery is always on time. Highly recommended!"</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" class="rounded-circle me-3" width="60" height="60" alt="Customer">
+                        <div>
+                            <h6 class="mb-0">Rahul Verma</h6>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"Great variety of products and excellent customer service. Will definitely order again!"</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/65.jpg" class="rounded-circle me-3" width="60" height="60" alt="Customer">
+                        <div>
+                            <h6 class="mb-0">Anjali Patel</h6>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"Love the convenience of ordering groceries online. The quality is consistently good."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center">
+                    <h3 class="mb-4">Subscribe to Our Newsletter</h3>
+                    <p class="mb-4">Get the latest updates, offers and discounts delivered to your inbox.</p>
+                    <form class="row g-2 justify-content-center">
+                        <div class="col-md-8">
+                            <input type="email" class="form-control form-control-lg" placeholder="Enter your email">
+                        </div>
+                        <div class="col-md-auto">
+                            <button type="submit" class="btn btn-light btn-lg">Subscribe</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

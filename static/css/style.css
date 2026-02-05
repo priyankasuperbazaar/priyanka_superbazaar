@@ -1,0 +1,143 @@
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-brand .logo-img {
+    max-height: 50px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.navbar-brand .logo-text {
+    display: none;
+}
+
+/* Show text if logo image fails to load (handled by onerror attribute) */
+.navbar-brand .logo-img[style*="display: none"] + .logo-text,
+.navbar-brand:not(:has(.logo-img)) .logo-text {
+    display: inline-block !important;
+}
+
+@media (max-width: 576px) {
+    .navbar-brand .logo-img {
+        max-height: 40px;
+    }
+    
+    .navbar-brand .logo-text {
+        font-size: 0.9rem;
+    }
+}
+
+.navbar-nav .nav-link {
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.navbar-nav .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0.2rem;
+    width: 0;
+    height: 2px;
+    background-color: #ffffff;
+    transition: width 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link:focus::after {
+    width: 100%;
+}
+
+.card img {
+    object-fit: cover;
+}
+
+.back-to-top {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1030;
+    display: none;
+}
+
+.footer-links a {
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive tweaks */
+
+/* Small screens (phones) */
+@media (max-width: 576px) {
+    h1 {
+        font-size: 1.6rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .card img {
+        height: 150px;
+    }
+
+    .hero-section {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+}
+
+/* Medium screens (tablets) */
+@media (min-width: 577px) and (max-width: 992px) {
+    .card img {
+        height: 180px;
+    }
+}
+
+/* Large screens (desktop) */
+@media (min-width: 993px) {
+    .card img {
+        height: 220px;
+    }
+}
+
+/* Toast Notifications */
+.toast-container {
+    max-width: 400px;
+}
+
+.toast {
+    min-width: 300px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.toast-header {
+    font-weight: 600;
+}
+
+.toast-body {
+    padding: 0.75rem;
+}
+
+@media (max-width: 576px) {
+    .toast-container {
+        max-width: 90%;
+        left: 5%;
+        right: 5%;
+    }
+    
+    .toast {
+        min-width: 100%;
+    }
+}

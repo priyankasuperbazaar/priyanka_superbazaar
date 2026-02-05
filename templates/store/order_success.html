@@ -1,0 +1,12 @@
+{% extends "base/base.html" %}
+
+{% block title %}Order Placed - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h2>Thank you for your order!</h2>
+    <p class="mt-3">Your order number is <strong>{{ order.order_number }}</strong>.</p>
+    <p>We will process your order and deliver it soon.</p>
+    <a href="{% url 'store:product-list' %}" class="btn btn-primary mt-3">Continue Shopping</a>
+</div>
+{% endblock %}

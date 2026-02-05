@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Priyanka Superbazaar{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'store:home' %}">
+                <img src="{% static 'images/logo.png' %}" alt="Priyanka Superbazaar" class="logo-img me-2" style="height: 50px; width: auto; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <span class="logo-text" style="display: none;">Priyanka Superbazaar</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'store:product-list' %}">Shop</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoriesDropdown" role="button" data-bs-toggle="dropdown">
+                            Categories
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for category in categories %}
+                                <li><a class="dropdown-item" href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'store:about' %}">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'store:contact' %}">Contact</a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <form class="d-none d-md-flex" method="get" action="{% url 'store:product-list' %}">
+                        <input type="search" name="q" class="form-control form-control-sm me-2" placeholder="Search products..." value="{{ query|default:'' }}">
+                    </form>
+                    <div class="dropdown me-2">
+                        <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="accountDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if user.is_authenticated %}
+                                {% if user.delivery_profile %}
+                                    <li><a class="dropdown-item" href="{% url 'store:delivery_dashboard' %}"><i class="fas fa-truck me-1"></i> Delivery Dashboard</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% else %}
+                                    <li><a class="dropdown-item" href="{% url 'store:account_profile' %}">My Account</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'store:account_orders' %}">My Orders</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'logout' %}" class="px-3 py-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-link dropdown-item p-0">Logout</button>
+                                    </form>
+                                </li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{% url 'login' %}">Customer Login</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store:delivery_login' %}">Delivery Login</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store:account_signup' %}">Register</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <a class="btn btn-outline-light position-relative" href="{% url 'store:cart_detail' %}" id="cartDropdown">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ cart_items_count|default:0 }}
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <!-- Toasts will be inserted here dynamically -->
+    </div>
+    
+    <!-- Django Messages Data (for JavaScript) -->
+    {% if messages %}
+    <div data-messages='[
+        {% for message in messages %}
+        {
+            "text": "{{ message|escapejs }}",
+            "type": "{{ message.tags|default:'info' }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]' style="display: none;"></div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white mt-5">
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5>About Us</h5>
+                    <p>Priyanka Superbazaar is your one-stop shop for all your daily needs. We offer high-quality products at competitive prices.</p>
+                </div>
+                <div class="col-md-2 mb-4 footer-links">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'store:about' %}" class="text-white">About Us</a></li>
+                        <li><a href="{% url 'store:contact' %}" class="text-white">Contact</a></li>
+                        <li><a href="#" class="text-white">FAQs</a></li>
+                        <li><a href="#" class="text-white">Shipping Policy</a></li>
+                        <li><a href="#" class="text-white">Return Policy</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4 footer-links">
+                    <h5>Customer Service</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-phone me-2"></i> {{ site_settings.store_phone }}</li>
+                        <li><i class="fas fa-envelope me-2"></i> {{ site_settings.store_email }}</li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> {{ site_settings.store_address_line1 }}{% if site_settings.store_address_line2 %}, {{ site_settings.store_address_line2 }}{% endif %}{% if site_settings.store_country %}, {{ site_settings.store_country }}{% endif %}</li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <h5>Follow Us</h5>
+                    <div class="social-links">
+                        <a href="https://www.instagram.com/priyanka_super_bazaar?igsh=eTgwaHF1c3JtaW9o" class="text-white" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <div class="mt-3">
+                        <h6>Newsletter</h6>
+                        <form class="d-flex">
+                            <input type="email" class="form-control me-2" placeholder="Your email">
+                            <button class="btn btn-primary" type="submit">Subscribe</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0">&copy; {% now "Y" %} Priyanka Superbazaar. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end"></div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary btn-lg back-to-top" id="backToTop">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

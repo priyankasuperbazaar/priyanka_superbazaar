@@ -1,0 +1,110 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-5">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" class="img-fluid mb-3" alt="{{ product.name }}">
+            {% else %}
+                <img src="{% static 'images/placeholder.png' %}" class="img-fluid mb-3" alt="{{ product.name }}">
+            {% endif %}
+
+            {% if images %}
+                <div class="d-flex flex-wrap gap-2">
+                    {% for img in images %}
+                        <img src="{{ img.image.url }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;" alt="{{ product.name }}">
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-7">
+            <h2>{{ product.name }}</h2>
+            <p class="text-muted">{{ product.category.name }}</p>
+
+            <p>
+                {% if product.discount_price %}
+                    <span class="text-muted text-decoration-line-through">₹{{ product.price }}</span>
+                    <span class="fw-bold text-danger ms-1">₹{{ product.discount_price }}</span>
+                {% else %}
+                    <span class="fw-bold fs-4">₹{{ product.price }}</span>
+                {% endif %}
+            </p>
+
+            <p>{{ product.description }}</p>
+
+            <p>
+                {% if product.is_in_stock %}
+                    <span class="badge bg-success">In stock</span>
+                {% else %}
+                    <span class="badge bg-danger">Out of stock</span>
+                {% endif %}
+            </p>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                <form method="post" action="{% url 'store:cart_add' product.id %}" class="d-inline-flex align-items-center">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="1" min="1" class="form-control me-2" style="width: 80px;">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                    </button>
+                </form>
+                
+                <!-- Wishlist Button -->
+                <form method="post" action="{% if in_wishlist %}{% url 'store:wishlist_remove' product.id %}{% else %}{% url 'store:wishlist_add' product.id %}{% endif %}" class="d-inline" id="wishlist-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn {% if in_wishlist %}btn-outline-danger{% else %}btn-outline-secondary{% endif %} wishlist-btn" data-product-id="{{ product.id }}">
+                        <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+                        <span class="ms-1">{% if in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}</span>
+                    </button>
+                </form>
+            </div>
+            <a href="{% url 'store:product-list' %}" class="btn btn-outline-secondary">Back to Shop</a>
+        </div>
+    </div>
+
+    <hr class="my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Customer Reviews</h4>
+        {% if user.is_authenticated %}
+            <a href="{% url 'store:product_review_create' product.id %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-star me-1"></i> Write a Review
+            </a>
+        {% else %}
+            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary btn-sm">
+                Login to Write Review
+            </a>
+        {% endif %}
+    </div>
+    
+    {% if reviews %}
+        {% for review in reviews %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>{{ review.user.get_full_name|default:review.user.username }}</strong>
+                            <div class="text-warning">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+                    </div>
+                    <p class="mb-0">{{ review.comment }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base/base.html" %}
+
+{% block title %}Track Order - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="bg-light py-5 mb-4 border-bottom">
+    <div class="container">
+        <h1 class="mb-3">Track your order</h1>
+        <p class="lead mb-0">Enter your order number to check the current status.</p>
+    </div>
+</div>
+
+<div class="container pb-5" style="max-width: 720px;">
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="text" name="order_number" class="form-control" placeholder="Enter order number" value="{{ query }}" required>
+            <button class="btn btn-primary" type="submit">Track</button>
+        </div>
+    </form>
+
+    {% if query and not order %}
+        <div class="alert alert-warning">No order found with number <strong>{{ query }}</strong>.</div>
+    {% endif %}
+
+    {% if order %}
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Order #{{ order.order_number }}</h2>
+                <p class="mb-1"><strong>Date:</strong> {{ order.created_at }}</p>
+                <p class="mb-1"><strong>Status:</strong> {{ order.get_status_display }}</p>
+                <p class="mb-1"><strong>Payment:</strong> {{ order.get_payment_status_display }}</p>
+                <p class="mb-3"><strong>Total:</strong> ₹{{ order.total }}</p>
+
+                <h3 class="h6 mt-3">Items</h3>
+                <ul class="list-group list-group-flush mb-3">
+                    {% for item in order.items.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>{{ item.product_name }} × {{ item.quantity }}</span>
+                            <span>₹{{ item.subtotal }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {% if order.shipping_address %}
+                    <h3 class="h6 mt-3">Delivery address</h3>
+                    <p class="mb-0">{{ order.shipping_address }}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

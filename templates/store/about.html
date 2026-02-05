@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+
+{% block title %}About Us - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="bg-light py-5 mb-4 border-bottom">
+    <div class="container">
+        <h1 class="mb-3">About Priyanka Superbazaar</h1>
+        <p class="lead mb-0">Your trusted neighbourhood grocery store, now online.</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <div class="col-md-7">
+            <h2 class="h4 mb-3">Our Story</h2>
+            <p>
+                Priyanka Superbazaar started with a simple idea: make daily grocery shopping
+                easier, faster and more affordable for every family. From fresh fruits and
+                vegetables to staples, dairy and household essentials, we carefully select
+                products so you get great quality at the right price.
+            </p>
+            <p>
+                With our online store you can browse categories, compare products and place
+                orders from the comfort of your home. Our team ensures timely delivery and
+                friendly service.
+            </p>
+
+            <h2 class="h4 mt-4 mb-3">Why Shop With Us?</h2>
+            <ul>
+                <li>Fresh groceries sourced daily</li>
+                <li>Wide range of staples, snacks and household items</li>
+                <li>Transparent pricing and regular offers</li>
+                <li>Secure, hassle‑free checkout</li>
+                <li>Local support team to help you with your orders</li>
+            </ul>
+        </div>
+        <div class="col-md-5">
+            <h2 class="h4 mb-3">Store Information</h2>
+            <div class="card">
+                <div class="card-body">
+                    <p class="mb-2"><strong>Store Address</strong></p>
+                    <p class="mb-3">
+                        {{ site_settings.store_address_line1 }}<br>
+                        {{ site_settings.store_address_line2 }}<br>
+                        {{ site_settings.store_country }}
+                    </p>
+                    <p class="mb-2"><strong>Contact</strong></p>
+                    <p class="mb-3">
+                        Phone: {{ site_settings.store_phone }}<br>
+                        Email: {{ site_settings.store_email }}
+                    </p>
+                    <p class="mb-2"><strong>Timings</strong></p>
+                    <p class="mb-0">{{ site_settings.store_hours }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

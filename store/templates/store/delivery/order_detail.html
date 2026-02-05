@@ -1,0 +1,371 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Order {{ order.order_number }} · Delivery{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Order #{{ order.order_number }}</h2>
+    <a href="{% url 'store:delivery_dashboard' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <span class="badge bg-primary">Status: {{ order.get_status_display }}</span>
+            <span class="badge bg-info text-dark">Payment: {{ order.get_payment_status_display }}</span>
+            <span class="badge bg-secondary">Method: {{ order.get_payment_method_display }}</span>
+            <span class="badge bg-success">Total: ₹{{ order.total }}</span>
+          </div>
+
+          <h5 class="mb-3">Update Status</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="{% url 'store:delivery_order_update' order_number=order.order_number %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_processing">
+              <button class="btn btn-outline-primary btn-sm" type="submit">
+                <i class="fas fa-cogs me-1"></i> Mark Processing
+              </button>
+            </form>
+            <form method="post" action="{% url 'store:delivery_order_update' order_number=order.order_number %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_shipped">
+              <button class="btn btn-outline-primary btn-sm" type="submit">
+                <i class="fas fa-truck me-1"></i> Mark Shipped
+              </button>
+            </form>
+            <form method="post" action="{% url 'store:delivery_order_update' order_number=order.order_number %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_delivered">
+              <button class="btn btn-success btn-sm" type="submit">
+                <i class="fas fa-check me-1"></i> Mark Delivered
+              </button>
+            </form>
+          </div>
+
+          <hr>
+
+          <h5 class="mb-3">Payment</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="{% url 'store:delivery_order_update' order_number=order.order_number %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_paid_cod">
+              <button class="btn btn-outline-dark btn-sm" type="submit">
+                <i class="fas fa-money-bill-wave me-1"></i> Mark Paid (COD)
+              </button>
+            </form>
+            <form method="post" action="{% url 'store:delivery_order_update' order_number=order.order_number %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="mark_paid_online">
+              <button class="btn btn-outline-info btn-sm" type="submit">
+                <i class="fas fa-credit-card me-1"></i> Mark Paid (Online)
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">Items</h5>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th class="text-end">Qty</th>
+                  <th class="text-end">Price</th>
+                  <th class="text-end">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in order.items.all %}
+                <tr>
+                  <td>{{ item.product_name }}</td>
+                  <td class="text-end">{{ item.quantity }}</td>
+                  <td class="text-end">₹{{ item.price }}</td>
+                  <td class="text-end">₹{{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="mb-3">Customer</h5>
+          <p class="mb-1">
+            <strong>Name:</strong>
+            {% if order.user %}
+              {{ order.user.get_full_name|default:order.user.username }}
+            {% else %}
+              {{ shipping_address.full_name|default:'Guest' }}
+            {% endif %}
+          </p>
+          <p class="mb-1">
+            <strong>Phone:</strong>
+            {% if shipping_address and shipping_address.phone %}
+              <a href="tel:{{ shipping_address.phone }}">{{ shipping_address.phone }}</a>
+            {% else %}-{% endif %}
+          </p>
+          <p class="mb-0">
+            <strong>Address:</strong><br>
+            {% if shipping_address %}
+              {{ shipping_address.get_full_address|linebreaksbr }}
+            {% else %}-{% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">Location Map</h5>
+          {% if map_query %}
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <button id="btnUseCurrentLocation" class="btn btn-outline-secondary btn-sm" type="button">
+                <i class="fas fa-crosshairs me-1"></i> Use My Current Location
+              </button>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="toggleLiveUpdate">
+                <label class="form-check-label" for="toggleLiveUpdate">Live updates</label>
+              </div>
+              <button id="btnRecenter" class="btn btn-outline-secondary btn-sm" type="button">
+                <i class="fas fa-compress me-1"></i> Recenter
+              </button>
+              <small id="locStatus" class="text-muted">
+                {% if delivery_boy.current_location %}
+                  Current: {{ delivery_boy.current_location }}
+                {% endif %}
+              </small>
+            </div>
+            <div id="liveMap" class="mb-2" style="height: 320px;"></div>
+            <div class="d-flex gap-2">
+              <a id="gmNavLink" class="btn btn-primary btn-sm" target="_blank" href="https://www.google.com/maps/dir/?api=1&destination={{ map_query|urlencode }}{% if delivery_boy.current_location %}&origin={{ delivery_boy.current_location|urlencode }}{% endif %}&travelmode=driving">
+                <i class="fas fa-location-arrow me-1"></i> Start Navigation
+              </a>
+              <a id="amNavLink" class="btn btn-outline-secondary btn-sm" target="_blank" href="https://maps.apple.com/?daddr={{ map_query|urlencode }}{% if delivery_boy.current_location %}&saddr={{ delivery_boy.current_location|urlencode }}{% endif %}">
+                <i class="fas fa-map-marked-alt me-1"></i> Open in Apple Maps
+              </a>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No address available.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  (function() {
+    const btn = document.getElementById('btnUseCurrentLocation');
+    const locStatus = document.getElementById('locStatus');
+    const gmLink = document.getElementById('gmNavLink');
+    const amLink = document.getElementById('amNavLink');
+    const toggle = document.getElementById('toggleLiveUpdate');
+    const btnRecenter = document.getElementById('btnRecenter');
+    const liveMapEl = document.getElementById('liveMap');
+
+    let map, driverMarker = null, destMarker = null, watchId = null, lastPost = 0;
+    const POST_INTERVAL_MS = 10000;
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function updateLinks(lat, lng) {
+      if (gmLink && gmLink.href) {
+        try {
+          const url = new URL(gmLink.href);
+          url.searchParams.set('origin', `${lat},${lng}`);
+          gmLink.href = url.toString();
+        } catch (e) {}
+      }
+      if (amLink && amLink.href) {
+        try {
+          const url = new URL(amLink.href);
+          url.searchParams.set('saddr', `${lat},${lng}`);
+          amLink.href = url.toString();
+        } catch (e) {}
+      }
+    }
+
+    function postLocation(lat, lng) {
+      const now = Date.now();
+      if (now - lastPost < POST_INTERVAL_MS) return Promise.resolve();
+      lastPost = now;
+      const csrf = getCookie('csrftoken');
+      const body = new URLSearchParams();
+      body.set('lat', lat);
+      body.set('lng', lng);
+      return fetch('{% url "store:delivery_update_location" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+          'X-CSRFToken': csrf,
+        },
+        body: body.toString(),
+        credentials: 'same-origin'
+      }).then(r => r.json()).catch(() => {});
+    }
+
+    function fitBounds() {
+      const points = [];
+      if (driverMarker) points.push(driverMarker.getLatLng());
+      if (destMarker) points.push(destMarker.getLatLng());
+      if (points.length === 1) {
+        map.setView(points[0], 14);
+      } else if (points.length === 2) {
+        map.fitBounds(points, { padding: [30, 30] });
+      }
+    }
+
+    function setDriver(lat, lng) {
+      if (!map) return;
+      const ll = L.latLng(lat, lng);
+      if (!driverMarker) {
+        driverMarker = L.marker(ll, { title: 'You' }).addTo(map);
+      } else {
+        driverMarker.setLatLng(ll);
+      }
+    }
+
+    function setDestination(lat, lng, label) {
+      if (!map) return;
+      const ll = L.latLng(lat, lng);
+      if (!destMarker) {
+        destMarker = L.marker(ll, { title: label || 'Destination' }).addTo(map);
+      } else {
+        destMarker.setLatLng(ll);
+      }
+    }
+
+    function geocodeDestination(query) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+      return fetch(url, { headers: { 'Accept': 'application/json' }})
+        .then(r => r.json())
+        .then(arr => {
+          if (Array.isArray(arr) && arr.length > 0) {
+            const { lat, lon } = arr[0];
+            return { lat: parseFloat(lat), lng: parseFloat(lon) };
+          }
+          throw new Error('No geocode results');
+        });
+    }
+
+    function initMap() {
+      if (!liveMapEl) return;
+      map = L.map(liveMapEl);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      const initialDriver = "{{ delivery_boy.current_location|default:'' }}";
+      const destinationQuery = "{{ map_query|escapejs }}";
+
+      if (initialDriver.includes(',')) {
+        const parts = initialDriver.split(',');
+        const dlat = parseFloat(parts[0]);
+        const dlng = parseFloat(parts[1]);
+        if (!isNaN(dlat) && !isNaN(dlng)) setDriver(dlat, dlng);
+      }
+
+      geocodeDestination(destinationQuery)
+        .then(({lat, lng}) => {
+          setDestination(lat, lng, destinationQuery);
+          fitBounds();
+        })
+        .catch(() => {
+          // fallback: center to India if only driver exists
+          fitBounds();
+        });
+    }
+
+    // Button: one-time capture
+    if (btn && navigator.geolocation) {
+      btn.addEventListener('click', function() {
+        if (locStatus) locStatus.textContent = 'Locating…';
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lng = pos.coords.longitude.toFixed(6);
+          setDriver(parseFloat(lat), parseFloat(lng));
+          fitBounds();
+          postLocation(lat, lng)
+            .then(function() {
+              if (locStatus) locStatus.textContent = `Current: ${lat},${lng}`;
+              updateLinks(lat, lng);
+            })
+            .catch(function() {
+              if (locStatus) locStatus.textContent = 'Failed to save location';
+            });
+        }, function() {
+          if (locStatus) locStatus.textContent = 'Location permission denied';
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+      });
+    }
+
+    // Live updates toggle
+    function startWatch() {
+      if (!navigator.geolocation || watchId) return;
+      watchId = navigator.geolocation.watchPosition(function(pos) {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        setDriver(parseFloat(lat), parseFloat(lng));
+        updateLinks(lat, lng);
+        postLocation(lat, lng);
+      }, function() {
+        if (locStatus) locStatus.textContent = 'Live updates stopped';
+        stopWatch();
+      }, { enableHighAccuracy: true, maximumAge: 5000 });
+      if (locStatus) locStatus.textContent = 'Live updates ON';
+    }
+
+    function stopWatch() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (locStatus) locStatus.textContent = 'Live updates OFF';
+    }
+
+    if (toggle) {
+      toggle.addEventListener('change', function() {
+        if (toggle.checked) startWatch(); else stopWatch();
+      });
+    }
+
+    if (btnRecenter) {
+      btnRecenter.addEventListener('click', fitBounds);
+    }
+
+    initMap();
+  })();
+</script>
+{% endblock %}

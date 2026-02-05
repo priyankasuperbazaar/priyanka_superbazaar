@@ -1,0 +1,270 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Checkout - Priyanka Superbazaar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-summary { background: #f8f9fa; padding: 20px; border-radius: 5px; }
+    .promo-code-section { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Checkout</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="post" id="checkout-form">
+                {% csrf_token %}
+                
+                {% if user.is_authenticated and form.use_saved_address.field.queryset.count > 0 %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Use Saved Address</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Select Saved Address</label>
+                            {{ form.use_saved_address }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Shipping Address</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.full_name.label }}</label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}
+                                <div class="text-danger small">{{ form.full_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.phone.label }}</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="text-danger small">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.address_line_1.label }}</label>
+                            {{ form.address_line_1 }}
+                            {% if form.address_line_1.errors %}
+                                <div class="text-danger small">{{ form.address_line_1.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.address_line_2.label }} <small class="text-muted">(Optional)</small></label>
+                            {{ form.address_line_2 }}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.city.label }}</label>
+                                {{ form.city }}
+                                {% if form.city.errors %}
+                                    <div class="text-danger small">{{ form.city.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.state.label }}</label>
+                                {{ form.state }}
+                                {% if form.state.errors %}
+                                    <div class="text-danger small">{{ form.state.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">{{ form.postal_code.label }}</label>
+                                {{ form.postal_code }}
+                                {% if form.postal_code.errors %}
+                                    <div class="text-danger small">{{ form.postal_code.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.country.label }}</label>
+                            {{ form.country }}
+                        </div>
+                        {% if user.is_authenticated %}
+                        <div class="form-check">
+                            {{ form.save_address }}
+                            <label class="form-check-label" for="{{ form.save_address.id_for_label }}">
+                                Save this address for future orders
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Shipping Method</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if shipping_methods %}
+                            {{ form.shipping_method }}
+                        {% else %}
+                            <p class="text-muted">Standard shipping will be applied</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Additional Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.customer_note.label }} <small class="text-muted">(Optional)</small></label>
+                            {{ form.customer_note }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Payment Method</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0"><strong>Cash on Delivery (COD)</strong></p>
+                        <small class="text-muted">Pay when you receive your order</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Place Order</button>
+                <a href="{% url 'store:cart_detail' %}" class="btn btn-outline-secondary w-100">Back to Cart</a>
+            </form>
+        </div>
+
+        <div class="col-md-4">
+            <div class="order-summary">
+                <h4 class="mb-4">Order Summary</h4>
+                
+                <!-- Promo Code Section -->
+                <div class="promo-code-section mb-3">
+                    <h6>Promo Code</h6>
+                    {% if applied_promo_code %}
+                        <div class="alert alert-success mb-2">
+                            <strong>{{ applied_promo_code }}</strong> applied!
+                            <br><small>Discount: ₹{{ discount_amount|floatformat:2 }}</small>
+                        </div>
+                    {% else %}
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="promo-code-input" placeholder="Enter code">
+                            <button class="btn btn-outline-secondary" type="button" id="apply-promo-btn">Apply</button>
+                        </div>
+                        <div id="promo-message" class="mt-2"></div>
+                    {% endif %}
+                </div>
+
+                <!-- Order Items -->
+                <div class="mb-3">
+                    {% for item in items %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>
+                                <strong>{{ item.product.name }}</strong>
+                                <br><small class="text-muted">Qty: {{ item.quantity }}</small>
+                            </div>
+                            <span>₹{{ item.get_cost|floatformat:2 }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <hr>
+
+                <!-- Order Totals -->
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>₹{{ subtotal|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% if discount_amount > 0 %}
+                <div class="mb-2 text-success">
+                    <div class="d-flex justify-content-between">
+                        <span>Discount:</span>
+                        <span>-₹{{ discount_amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Tax (GST):</span>
+                        <span>₹{{ tax_amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Shipping:</span>
+                        <span>₹{{ shipping_cost|floatformat:2 }}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <strong class="fs-5">₹{{ total_price|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const promoInput = document.getElementById('promo-code-input');
+    const applyBtn = document.getElementById('apply-promo-btn');
+    const promoMessage = document.getElementById('promo-message');
+    
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            const code = promoInput.value.trim();
+            if (!code) {
+                promoMessage.innerHTML = '<div class="text-danger small">Please enter a promo code</div>';
+                return;
+            }
+            
+            fetch('{% url "store:apply_promo_code" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'promo_code=' + encodeURIComponent(code)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    promoMessage.innerHTML = '<div class="text-success small">' + data.message + '</div>';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    promoMessage.innerHTML = '<div class="text-danger small">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                promoMessage.innerHTML = '<div class="text-danger small">An error occurred. Please try again.</div>';
+            });
+        });
+    }
+    
+    // Handle saved address selection
+    const useSavedAddress = document.getElementById('id_use_saved_address');
+    if (useSavedAddress) {
+        useSavedAddress.addEventListener('change', function() {
+            if (this.value) {
+                // Disable address fields when using saved address
+                const addressFields = document.querySelectorAll('#id_full_name, #id_phone, #id_address_line_1, #id_address_line_2, #id_city, #id_state, #id_postal_code, #id_country');
+                addressFields.forEach(field => field.disabled = true);
+            } else {
+                const addressFields = document.querySelectorAll('#id_full_name, #id_phone, #id_address_line_1, #id_address_line_2, #id_city, #id_state, #id_postal_code, #id_country');
+                addressFields.forEach(field => field.disabled = false);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

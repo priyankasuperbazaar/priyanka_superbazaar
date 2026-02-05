@@ -1,0 +1,75 @@
+{% extends "base/base.html" %}
+
+{% block title %}My Orders - Priyanka Superbazaar{% endblock %}
+
+{% block content %}
+<div class="bg-light py-5 mb-4 border-bottom">
+    <div class="container">
+        <h1 class="mb-3">My Orders</h1>
+        <p class="lead mb-0">Track all your previous orders in one place.</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'store:order_track' %}?order_number={{ order.order_number }}" class="text-decoration-none">
+                                    {{ order.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if order.status == 'delivered' %}bg-success
+                                    {% elif order.status == 'cancelled' %}bg-danger
+                                    {% elif order.status == 'pending' %}bg-warning
+                                    {% else %}bg-info{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if order.payment_status == 'paid' %}bg-success
+                                    {% elif order.payment_status == 'failed' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ order.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">₹{{ order.total|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'store:order_invoice' order.order_number %}" class="btn btn-outline-primary" title="Download Invoice">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if order.can_cancel %}
+                                        <a href="{% url 'store:order_cancel' order.order_number %}" class="btn btn-outline-danger" title="Cancel Order">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>You have not placed any orders yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
