@@ -184,4 +184,4 @@ if not DEBUG:
     MEDIA_ROOT = BASE_DIR / 'media'
     
 # Whitenoise Static + Media
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
