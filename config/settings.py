@@ -103,8 +103,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = []
-
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
 
@@ -183,3 +182,5 @@ if not DEBUG:
     MEDIA_URL = '/media/'
     STATIC_ROOT = BASE_DIR / 'staticfiles'
     MEDIA_ROOT = BASE_DIR / 'media'
+# Whitenoise Static + Media
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
