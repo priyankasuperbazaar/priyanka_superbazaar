@@ -171,3 +171,6 @@ if not DEBUG:
 
 # Custom user model
 # AUTH_USER_MODEL = 'accounts.CustomUser'  # Uncomment if you create a custom user model
+CSRF_TRUSTED_ORIGINS = [
+    'https://priyanka-superbazaar.onrender.com'
+]
