@@ -4,17 +4,34 @@ body {
 
 .navbar-brand {
     font-weight: 700;
+    display: flex;
+    align-items: center;
 }
 
-.navbar-brand img {
+.navbar-brand .logo-img {
     max-height: 50px;
     width: auto;
     object-fit: contain;
+    display: block;
+}
+
+.navbar-brand .logo-text {
+    display: none;
+}
+
+/* Show text if logo image fails to load (handled by onerror attribute) */
+.navbar-brand .logo-img[style*="display: none"] + .logo-text,
+.navbar-brand:not(:has(.logo-img)) .logo-text {
+    display: inline-block !important;
 }
 
 @media (max-width: 576px) {
-    .navbar-brand img {
+    .navbar-brand .logo-img {
         max-height: 40px;
+    }
+    
+    .navbar-brand .logo-text {
+        font-size: 0.9rem;
     }
 }
 
