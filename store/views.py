@@ -1,12 +1,18 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import transaction
+from django.db.utils import OperationalError
 from django.db.models import Q, Count
+from decimal import Decimal
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
+from django.contrib.auth import views as auth_views
 from django.contrib.auth import login as auth_login, logout as auth_logout, update_session_auth_hash
-from django.contrib import messages
 from django.views.decorators.http import require_POST
-from decimal import Decimal
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+import random
 
 from django.http import JsonResponse, HttpResponse
 from .models import (
@@ -25,15 +31,271 @@ from .models import (
     PromoCode,
     ShippingMethod,
     Payment,
+    CustomerProfile,
+    PasswordResetOTP,
 )
 from .forms import (
     ProductReviewForm, AddressForm, UserProfileForm,
-    ContactForm, CheckoutForm
+    ContactForm, CheckoutForm, CustomRegisterForm, CustomLoginForm
 )
 from .utils import (
     send_order_confirmation_email, send_order_status_update_email,
-    send_contact_form_email, calculate_tax, calculate_shipping_cost
+    send_contact_form_email, calculate_tax, calculate_shipping_cost,
+    send_order_confirmation_sms
 )
+
+
+def custom_login(request):
+    """Custom login view with email/username support"""
+    google_login_available = False
+    try:
+        from allauth.socialaccount.models import SocialApp
+
+        google_login_available = SocialApp.objects.filter(provider='google', sites__id=settings.SITE_ID).exists()
+    except Exception:
+        google_login_available = False
+
+    if request.method == 'POST':
+        form = CustomLoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            from django.contrib.auth import authenticate
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                identifier_kind = 'username'
+                identifier_value = username
+                if username and '@' in username:
+                    identifier_kind = 'email'
+                else:
+                    normalized = (username or '').strip().replace(' ', '')
+                    if normalized.startswith('+'):
+                        normalized_digits = normalized[1:]
+                    else:
+                        normalized_digits = normalized
+                    if normalized_digits.isdigit() and len(normalized_digits) >= 10:
+                        identifier_kind = 'phone'
+                        identifier_value = normalized
+
+                try:
+                    request.session['login_identifier_kind'] = identifier_kind
+                    request.session['login_identifier_value'] = identifier_value
+                except Exception:
+                    pass
+
+                auth_login(request, user)
+                return redirect('store:home')
+            else:
+                form.add_error(None, 'Invalid credentials')
+    else:
+        form = CustomLoginForm()
+    return render(request, 'store/login.html', {'form': form, 'google_login_available': google_login_available})
+
+
+def account_signup(request):
+    """User registration page."""
+    if request.method == 'POST':
+        form = CustomRegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            return redirect('store:home')
+    else:
+        form = CustomRegisterForm()
+    return render(request, 'store/account_signup.html', {'form': form})
+
+
+def password_reset_phone(request):
+    if request.method == 'POST':
+        phone = (request.POST.get('phone') or '').strip()
+        if not phone:
+            messages.error(request, 'Please enter your phone number.')
+            return render(request, 'store/password_reset_phone.html')
+
+        try:
+            profile = CustomerProfile.objects.select_related('user').filter(phone=phone).first()
+        except OperationalError:
+            messages.error(request, 'System setup pending. Please run migrations and try again.')
+            return render(request, 'store/password_reset_phone.html')
+        if not profile:
+            messages.error(request, 'This phone number is not registered.')
+            return render(request, 'store/password_reset_phone.html')
+
+        otp = f"{random.randint(100000, 999999)}"
+        expires_at = timezone.now() + timedelta(seconds=30)
+        try:
+            PasswordResetOTP.objects.create(phone=phone, otp=otp, expires_at=expires_at)
+        except OperationalError:
+            messages.error(request, 'System setup pending. Please run migrations and try again.')
+            return render(request, 'store/password_reset_phone.html')
+
+        # Send OTP via SMS (requires SMS config). If not configured, it will be a no-op.
+        try:
+            from .utils import send_sms
+
+            send_sms(phone, f"Your OTP for password reset is {otp}. It is valid for 30 seconds.")
+        except Exception:
+            pass
+
+        try:
+            request.session['password_reset_phone'] = phone
+            request.session['password_reset_otp_expires_at'] = expires_at.isoformat()
+        except Exception:
+            pass
+
+        messages.success(request, 'OTP has been sent to your phone number.')
+        return redirect('store:password_reset_verify')
+
+    return render(request, 'store/password_reset_phone.html')
+
+
+@require_POST
+def password_reset_resend_otp(request):
+    phone = None
+    try:
+        phone = (request.session.get('password_reset_phone') or '').strip()
+    except Exception:
+        phone = None
+
+    if not phone:
+        messages.error(request, 'Please start password reset again.')
+        return redirect('store:password_reset_phone')
+
+    try:
+        profile = CustomerProfile.objects.select_related('user').filter(phone=phone).first()
+    except OperationalError:
+        messages.error(request, 'System setup pending. Please run migrations and try again.')
+        return redirect('store:password_reset_phone')
+
+    if not profile:
+        messages.error(request, 'This phone number is not registered.')
+        return redirect('store:password_reset_phone')
+
+    otp = f"{random.randint(100000, 999999)}"
+    expires_at = timezone.now() + timedelta(seconds=30)
+    try:
+        PasswordResetOTP.objects.create(phone=phone, otp=otp, expires_at=expires_at)
+    except OperationalError:
+        messages.error(request, 'System setup pending. Please run migrations and try again.')
+        return redirect('store:password_reset_phone')
+
+    try:
+        from .utils import send_sms
+
+        send_sms(phone, f"Your OTP for password reset is {otp}. It is valid for 30 seconds.")
+    except Exception:
+        pass
+
+    try:
+        request.session['password_reset_otp_expires_at'] = expires_at.isoformat()
+    except Exception:
+        pass
+
+    messages.success(request, 'A new OTP has been sent to your phone number.')
+    return redirect('store:password_reset_verify')
+
+
+def password_reset_verify(request):
+    phone = None
+    try:
+        phone = request.session.get('password_reset_phone')
+    except Exception:
+        phone = None
+
+    if request.method == 'POST':
+        phone = (request.POST.get('phone') or phone or '').strip()
+        otp = (request.POST.get('otp') or '').strip()
+        password1 = request.POST.get('password1') or ''
+        password2 = request.POST.get('password2') or ''
+
+        resend_in_seconds = 0
+        try:
+            expires_iso = request.session.get('password_reset_otp_expires_at')
+            if expires_iso:
+                expires_at = timezone.datetime.fromisoformat(expires_iso)
+                if timezone.is_naive(expires_at):
+                    expires_at = timezone.make_aware(expires_at, timezone.get_current_timezone())
+                diff = int((expires_at - timezone.now()).total_seconds())
+                resend_in_seconds = diff if diff > 0 else 0
+        except Exception:
+            resend_in_seconds = 0
+
+        if not phone:
+            messages.error(request, 'Please start password reset again.')
+            return redirect('store:password_reset_phone')
+
+        if not otp:
+            messages.error(request, 'Please enter the OTP.')
+            return render(request, 'store/password_reset_verify.html', {'phone': phone, 'resend_in_seconds': resend_in_seconds})
+
+        if not password1 or not password2:
+            messages.error(request, 'Please enter and confirm your new password.')
+            return render(request, 'store/password_reset_verify.html', {'phone': phone, 'resend_in_seconds': resend_in_seconds})
+
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'store/password_reset_verify.html', {'phone': phone, 'resend_in_seconds': resend_in_seconds})
+
+        try:
+            otp_obj = PasswordResetOTP.objects.filter(
+                phone=phone,
+                otp=otp,
+                is_used=False,
+                expires_at__gt=timezone.now(),
+            ).order_by('-created_at').first()
+        except OperationalError:
+            messages.error(request, 'System setup pending. Please run migrations and try again.')
+            return redirect('store:password_reset_phone')
+
+        if not otp_obj:
+            messages.error(request, 'Invalid or expired OTP.')
+            return render(request, 'store/password_reset_verify.html', {'phone': phone, 'resend_in_seconds': resend_in_seconds})
+
+        try:
+            profile = CustomerProfile.objects.select_related('user').filter(phone=phone).first()
+        except OperationalError:
+            messages.error(request, 'System setup pending. Please run migrations and try again.')
+            return redirect('store:password_reset_phone')
+        if not profile or not profile.user:
+            messages.error(request, 'This phone number is not registered.')
+            return redirect('store:password_reset_phone')
+
+        user = profile.user
+        user.set_password(password1)
+        user.save(update_fields=['password'])
+
+        otp_obj.is_used = True
+        otp_obj.save(update_fields=['is_used', 'updated_at'])
+
+        try:
+            request.session.pop('password_reset_phone', None)
+        except Exception:
+            pass
+
+        messages.success(request, 'Password reset successful. Please login with your new password.')
+        return redirect('store:customer_login')
+
+    if not phone:
+        return redirect('store:password_reset_phone')
+
+    resend_in_seconds = 0
+    try:
+        expires_iso = request.session.get('password_reset_otp_expires_at')
+        if expires_iso:
+            # fromisoformat preserves tzinfo if present
+            expires_at = timezone.datetime.fromisoformat(expires_iso)
+            if timezone.is_naive(expires_at):
+                expires_at = timezone.make_aware(expires_at, timezone.get_current_timezone())
+            diff = int((expires_at - timezone.now()).total_seconds())
+            resend_in_seconds = diff if diff > 0 else 0
+    except Exception:
+        resend_in_seconds = 0
+
+    return render(
+        request,
+        'store/password_reset_verify.html',
+        {'phone': phone, 'resend_in_seconds': resend_in_seconds},
+    )
 
 
 def home(request):
@@ -79,6 +341,15 @@ def product_list(request, category_slug=None):
         "wishlist_ids": wishlist_ids,
     }
     return render(request, "store/product_list.html", context)
+
+
+def search_suggestions(request):
+    suggestions = list(
+        Product.objects.filter(available=True)
+        .order_by('?')
+        .values_list('name', flat=True)[:8]
+    )
+    return JsonResponse({'suggestions': suggestions})
 
 
 def product_detail(request, id, slug):
@@ -488,6 +759,17 @@ def checkout(request):
                 send_order_confirmation_email(order)
             except Exception as e:
                 print(f"Error sending email: {e}")
+
+            # Optional SMS confirmation (requires SMS_API_URL + SMS_API_KEY configured)
+            try:
+                send_order_confirmation_sms(order)
+            except Exception:
+                pass
+
+            try:
+                messages.success(request, f"Order placed successfully! Order number: {order.order_number}")
+            except Exception:
+                pass
             
             return redirect("store:order_success", order_number=order.order_number)
     else:
@@ -563,27 +845,14 @@ def track_order(request):
     return render(request, "store/order_track.html", {"order": order, "query": query})
 
 
-def account_signup(request):
-    """User registration page."""
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            auth_login(request, user)
-            return redirect('store:home')
-    else:
-        form = UserCreationForm()
-    return render(request, 'store/account_signup.html', {'form': form})
-
-
-@login_required
+@login_required(login_url='/customer/login/')
 def wishlist_view(request):
     """Display user's wishlist."""
     wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
     return render(request, 'store/wishlist.html', {'wishlist_items': wishlist_items})
 
 
-@login_required
+@login_required(login_url='/customer/login/')
 def wishlist_add(request, product_id):
     """Add a product to the wishlist."""
     product = get_object_or_404(Product, id=product_id)
@@ -600,7 +869,7 @@ def wishlist_add(request, product_id):
     return redirect('store:wishlist')
 
 
-@login_required
+@login_required(login_url='/customer/login/')
 def wishlist_remove(request, product_id):
     """Remove a product from the wishlist."""
     wishlist_item = get_object_or_404(

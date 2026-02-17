@@ -71,16 +71,35 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
     // Remove item from wishlist
     $('.remove-from-wishlist').click(function() {
         const productId = $(this).data('product-id');
         const button = $(this);
+        const removeUrlTemplate = "{% url 'store:wishlist_remove' 0 %}";
+        const removeUrl = removeUrlTemplate.replace('/0/', `/${productId}/`);
         
         $.ajax({
-            url: `/wishlist/remove/${productId}/`,
+            url: removeUrl,
             method: 'POST',
             data: {
-                csrfmiddlewaretoken: '{{ csrf_token }}'
+                csrfmiddlewaretoken: csrftoken
             },
             success: function(response) {
                 // Remove the product card from the DOM

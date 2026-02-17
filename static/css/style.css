@@ -56,6 +56,26 @@ body {
     width: 100%;
 }
 
+.navbar-search .input-group {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    padding: 0.15rem 0.35rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.navbar-search .input-group .input-group-text {
+    border-radius: 999px;
+}
+
+.navbar-search #navbarSearchInput {
+    border-radius: 999px;
+    min-width: 260px;
+}
+
+.navbar-search #navbarSearchInput:focus {
+    box-shadow: none;
+}
+
 .card img {
     object-fit: cover;
 }
@@ -80,6 +100,12 @@ body {
 
 /* Small screens (phones) */
 @media (max-width: 576px) {
+    .container {
+        max-width: 100% !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
     h1 {
         font-size: 1.6rem;
     }
@@ -95,6 +121,19 @@ body {
     .hero-section {
         padding-top: 1.5rem;
         padding-bottom: 1.5rem;
+    }
+
+    .navbar-search #navbarSearchInput {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .navbar-search {
+        width: 100%;
+    }
+
+    .navbar-search .input-group {
+        width: 100%;
     }
 }
 

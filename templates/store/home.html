@@ -36,6 +36,73 @@
         color: #0d6efd;
     }
 
+    .category-thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        margin: 0 auto 12px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        background: #fff;
+        display: grid;
+        place-items: center;
+    }
+    .category-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* CATEGORY STRIP (CIRCLES) */
+    .category-strip {
+        margin-top: -2.25rem;
+        margin-bottom: 2.5rem;
+    }
+    .category-strip-inner {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding: 12px 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .category-strip-inner::-webkit-scrollbar { display: none; }
+    .category-chip {
+        flex: 0 0 auto;
+        width: 86px;
+        text-align: center;
+        color: inherit;
+        text-decoration: none;
+    }
+    .category-chip-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        display: grid;
+        place-items: center;
+        margin: 0 auto 8px;
+        overflow: hidden;
+    }
+    .category-chip-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .category-chip-label {
+        font-size: 0.85rem;
+        line-height: 1.1;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     /* FEATURE BOX */
     .feature-box {
         text-align: center;
@@ -117,6 +184,29 @@
     </div>
 </section>
 
+{% if categories %}
+<section class="category-strip">
+    <div class="container">
+        <div class="bg-white rounded-4 shadow-sm">
+            <div class="category-strip-inner">
+                {% for cat in categories|slice:":12" %}
+                <a class="category-chip" href="{{ cat.get_absolute_url }}" title="{{ cat.name }}">
+                    <div class="category-chip-avatar">
+                        {% if cat.image %}
+                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+                        {% else %}
+                            <span class="text-primary fw-bold">{{ cat.name|slice:":1" }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="category-chip-label">{{ cat.name }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- FEATURES -->
 <section class="container mb-5">
     <div class="row g-4">
@@ -188,10 +278,16 @@
             <div class="col-6 col-md-4 col-lg-3">
                 <a href="{{ cat.get_absolute_url }}" class="text-decoration-none">
                     <div class="category-card text-center">
-                        <div class="category-icon">
-                            <i class="fas fa-{% cycle 'apple-alt' 'carrot' 'drumstick-bite'
-                                'fish' 'egg' 'cheese' 'wine-bottle' 'bread-slice' %}"></i>
-                        </div>
+                        {% if cat.image %}
+                            <div class="category-thumb">
+                                <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+                            </div>
+                        {% else %}
+                            <div class="category-icon">
+                                <i class="fas fa-{% cycle 'apple-alt' 'carrot' 'drumstick-bite'
+                                    'fish' 'egg' 'cheese' 'wine-bottle' 'bread-slice' %}"></i>
+                            </div>
+                        {% endif %}
                         <h5>{{ cat.name }}</h5>
                         <p class="text-muted small">{{ cat.products.count }} items</p>
                     </div>

@@ -22,7 +22,7 @@ from django.conf import settings
 from .models import (
     Category, Product, ProductImage, ProductReview, Wishlist, Cart, CartItem,
     PromoCode, Address, Order, OrderItem, Payment, ShippingMethod, SiteSettings,
-    Offer, DeliveryBoy,
+    Offer, DeliveryBoy, CustomerProfile, PasswordResetOTP,
 )
 
 User = get_user_model()
@@ -677,3 +677,16 @@ class DeliveryBoyAdmin(admin.ModelAdmin):
             obj.user.is_staff = True
             obj.user.save()
         super().save_model(request, obj, form, change)
+
+
+@admin.register(CustomerProfile)
+class CustomerProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'phone', 'created_at')
+    search_fields = ('user__username', 'user__email', 'phone')
+
+
+@admin.register(PasswordResetOTP)
+class PasswordResetOTPAdmin(admin.ModelAdmin):
+    list_display = ('phone', 'otp', 'is_used', 'expires_at', 'created_at')
+    list_filter = ('is_used',)
+    search_fields = ('phone', 'otp')

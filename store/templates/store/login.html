@@ -1,4 +1,5 @@
 {% extends 'base/base.html' %}
+{% load socialaccount %}
 
 {% block content %}
 <div class="container mt-5">
@@ -7,14 +8,14 @@
             <div class="card shadow-lg border-0 rounded-lg">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <i class="fas fa-truck text-primary fa-3x mb-3"></i>
-                        <h2 class="h4 text-gray-900 mb-2">Delivery Login</h2>
-                        <p class="text-muted">Access your delivery dashboard</p>
+                        <i class="fas fa-user-circle text-primary fa-3x mb-3"></i>
+                        <h2 class="h4 text-gray-900 mb-2">Welcome Back</h2>
+                        <p class="text-muted">Sign in to your account</p>
                     </div>
                     
                     {% if form.errors %}
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <strong>Login Failed</strong> Please check your credentials and try again.
+                            <strong>Login Failed</strong> Please check your email/username and password.
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endif %}
@@ -39,16 +40,30 @@
                         </div>
                         
                         <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mb-3">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
                         </button>
                     </form>
+
+                    {% if google_login_available %}
+                    <div class="d-grid gap-2 mb-3">
+                        <a class="btn btn-outline-dark btn-lg w-100 py-3" href="{% provider_login_url 'google' %}">
+                            <i class="fab fa-google me-2"></i>Continue with Google
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center">
+                        <a href="{% url 'store:password_reset_phone' %}" class="text-decoration-none">
+                            <small class="text-muted">Forgot password?</small>
+                        </a>
+                    </div>
                 </div>
             </div>
             
             <div class="text-center mt-4">
-                <p class="text-muted mb-0">Not a delivery person?</p>
-                <a href="{% url 'store:customer_login' %}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-user me-1"></i>Customer Login
+                <p class="text-muted mb-0">Don't have an account?</p>
+                <a href="{% url 'store:account_signup' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-user-plus me-1"></i>Create Account
                 </a>
             </div>
         </div>

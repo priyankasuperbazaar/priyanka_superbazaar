@@ -17,13 +17,138 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        #appSplash {
+            position: fixed;
+            inset: 0;
+            z-index: 20000;
+            background: radial-gradient(1200px 600px at 20% 10%, rgba(255, 255, 255, 0.16), transparent 60%),
+                        radial-gradient(900px 500px at 80% 30%, rgba(255, 255, 255, 0.12), transparent 60%),
+                        linear-gradient(135deg, #0d6efd 0%, #0a58ca 45%, #6610f2 100%);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: hidden;
+        }
+        #appSplash::before,
+        #appSplash::after {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.55;
+            animation: blobFloat 7s ease-in-out infinite;
+        }
+        #appSplash::before {
+            background: rgba(255, 193, 7, 0.35);
+            left: -140px;
+            top: -180px;
+        }
+        #appSplash::after {
+            background: rgba(13, 202, 240, 0.35);
+            right: -180px;
+            bottom: -220px;
+            animation-delay: 1.6s;
+        }
+        #appSplash .splash-card {
+            width: min(520px, 92vw);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(10px);
+            padding: 28px;
+            text-align: center;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+        #appSplash .splash-logo {
+            height: 64px;
+            width: auto;
+            object-fit: contain;
+            margin-bottom: 12px;
+            animation: logoPulse 1.6s ease-in-out infinite;
+        }
+        #appSplash .splash-title {
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            margin: 0;
+        }
+        #appSplash .splash-subtitle {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+        #appSplash .loader {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin: 18px auto 0;
+        }
+        #appSplash .loader span {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.0);
+            animation: dotBounce 0.9s ease-in-out infinite;
+        }
+        #appSplash .loader span:nth-child(2) { animation-delay: 0.12s; opacity: 0.9; }
+        #appSplash .loader span:nth-child(3) { animation-delay: 0.24s; opacity: 0.8; }
+        #appSplash .progress-wrap {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.22);
+            overflow: hidden;
+            margin-top: 18px;
+        }
+        #appSplash .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 999px;
+            transition: width 0.2s linear;
+        }
+        @keyframes dotBounce {
+            0%, 100% { transform: translateY(0); opacity: 0.7; }
+            50% { transform: translateY(-6px); opacity: 1; }
+        }
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        @keyframes blobFloat {
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50% { transform: translate3d(22px, 18px, 0) scale(1.06); }
+        }
+        body.splash-lock {
+            overflow: hidden;
+        }
+    </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <div id="appSplash" aria-hidden="true">
+        <div class="splash-card">
+            <img src="{% static 'images/logo.png' %}" alt="Priyanka Superbazaar" class="splash-logo" onerror="this.style.display='none';">
+            <h1 class="h4 splash-title">Priyanka Superbazaar</h1>
+            <p class="splash-subtitle">Preparing your shopping experience...</p>
+            <div class="loader" aria-label="Loading"><span></span><span></span><span></span></div>
+            <div class="progress-wrap" aria-hidden="true">
+                <div class="progress-bar" id="appSplashProgress"></div>
+            </div>
+            <div class="mt-3" style="opacity:0.9; font-size: 0.95rem;">Please wait 10 seconds</div>
+        </div>
+    </div>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+        <div class="container-fluid px-3 px-lg-4">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'store:home' %}">
                 <img src="{% static 'images/logo.png' %}" alt="Priyanka Superbazaar" class="logo-img me-2" style="height: 50px; width: auto; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
                 <span class="logo-text" style="display: none;">Priyanka Superbazaar</span>
@@ -56,11 +181,17 @@
                     </li>
                 </ul>
                 
-                <div class="d-flex align-items-center gap-3">
-                    <form class="d-none d-md-flex" method="get" action="{% url 'store:product-list' %}">
-                        <input type="search" name="q" class="form-control form-control-sm me-2" placeholder="Search products..." value="{{ query|default:'' }}">
+                <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-3">
+                    <form class="d-flex navbar-search" method="get" action="{% url 'store:product-list' %}">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input id="navbarSearchInput" type="search" name="q" class="form-control border-0" placeholder="Search products..." value="{{ query|default:'' }}" data-suggestions-url="{% url 'store:search_suggestions' %}">
+                        </div>
                     </form>
-                    <div class="dropdown me-2">
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                    <div class="dropdown">
                         <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="accountDropdown" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i>
                         </a>
@@ -75,13 +206,13 @@
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form method="post" action="{% url 'logout' %}" class="px-3 py-1">
+                                    <form method="post" action="{% url 'account_logout' %}" class="px-3 py-1">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-link dropdown-item p-0">Logout</button>
                                     </form>
                                 </li>
                             {% else %}
-                                <li><a class="dropdown-item" href="{% url 'login' %}">Customer Login</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store:customer_login' %}">Customer Login</a></li>
                                 <li><a class="dropdown-item" href="{% url 'store:delivery_login' %}">Delivery Login</a></li>
                                 <li><a class="dropdown-item" href="{% url 'store:account_signup' %}">Register</a></li>
                             {% endif %}
@@ -95,6 +226,16 @@
                                 {{ cart_items_count|default:0 }}
                             </span>
                         </a>
+                    </div>
+
+                    <a class="btn btn-outline-light position-relative" href="{% url 'store:wishlist' %}">
+                        <i class="fas fa-heart"></i>
+                        {% if user.is_authenticated %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ wishlist_items_count|default:0 }}
+                            </span>
+                        {% endif %}
+                    </a>
                     </div>
                 </div>
             </div>
@@ -125,7 +266,7 @@
 
     <!-- Footer -->
     <footer class="bg-dark text-white mt-5">
-        <div class="container py-5">
+        <div class="container-fluid px-3 px-lg-4 py-5">
             <div class="row">
                 <div class="col-md-4 mb-4">
                     <h5>About Us</h5>
@@ -185,6 +326,47 @@
     
     <!-- Custom JS -->
     <script src="{% static 'js/main.js' %}"></script>
+
+    <script>
+        (function () {
+            try {
+                var key = 'psb_splash_shown';
+                var splash = document.getElementById('appSplash');
+                var progress = document.getElementById('appSplashProgress');
+                if (!splash) return;
+
+                var hasShown = false;
+                try {
+                    hasShown = sessionStorage.getItem(key) === '1';
+                } catch (e) {
+                    hasShown = false;
+                }
+
+                if (hasShown) return;
+
+                splash.style.display = 'flex';
+                document.body.classList.add('splash-lock');
+
+                var durationMs = 10000;
+                var start = Date.now();
+                if (progress) progress.style.width = '0%';
+
+                var timer = setInterval(function () {
+                    var elapsedMs = Date.now() - start;
+                    var pct = Math.min(100, Math.round((elapsedMs / durationMs) * 100));
+                    if (progress) progress.style.width = pct + '%';
+                    if (elapsedMs >= durationMs) {
+                        clearInterval(timer);
+                        splash.style.display = 'none';
+                        document.body.classList.remove('splash-lock');
+                        try {
+                            sessionStorage.setItem(key, '1');
+                        } catch (e) {}
+                    }
+                }, 120);
+            } catch (e) {}
+        })();
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

@@ -1,4 +1,4 @@
-from .models import Category, Cart, SiteSettings
+from .models import Category, Cart, SiteSettings, Wishlist
 
 
 def catalog(request):
@@ -7,6 +7,13 @@ def catalog(request):
     site_settings = SiteSettings.load()
 
     cart_items_count = 0
+    wishlist_items_count = 0
+
+    try:
+        if request.user.is_authenticated:
+            wishlist_items_count = Wishlist.objects.filter(user=request.user).count()
+    except Exception:
+        wishlist_items_count = 0
 
     # Best-effort cart lookup; never raise errors here
     try:
@@ -32,5 +39,6 @@ def catalog(request):
     return {
         "categories": categories,
         "cart_items_count": cart_items_count,
+        "wishlist_items_count": wishlist_items_count,
         "site_settings": site_settings,
     }

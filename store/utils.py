@@ -2,7 +2,65 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from decimal import Decimal
+from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
 from .models import SiteSettings, Order
+import json
+import urllib.request
+import urllib.error
+
+User = get_user_model()
+
+
+class EmailOrUsernameModelBackend(ModelBackend):
+    """Custom authentication backend that allows login with email or username"""
+    
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        if username is None:
+            username = kwargs.get(User.USERNAME_FIELD)
+        
+        # Check if username is an email
+        if '@' in username:
+            try:
+                user = User.objects.get(email=username)
+                if user.check_password(password):
+                    return user
+            except User.DoesNotExist:
+                return None
+        else:
+            # Try username
+            try:
+                user = User.objects.get(username=username)
+                if user.check_password(password):
+                    return user
+            except User.DoesNotExist:
+                user = None
+
+            # Try phone via CustomerProfile
+            try:
+                from .models import CustomerProfile
+
+                profile = CustomerProfile.objects.select_related('user').filter(phone=username).first()
+                if profile and profile.user and profile.user.check_password(password):
+                    return profile.user
+            except Exception:
+                return None
+
+            # Try phone via default shipping address (if any)
+            try:
+                from .models import Address
+
+                address = Address.objects.select_related('user').filter(
+                    phone=username,
+                    address_type='shipping',
+                    is_default=True,
+                ).first()
+                if address and address.user and address.user.check_password(password):
+                    return address.user
+            except Exception:
+                return None
+        
+        return None
 
 
 def send_order_confirmation_email(order):
@@ -154,4 +212,100 @@ def calculate_shipping_cost(order_total, shipping_method=None):
         return Decimal('0.00')
     
     return Decimal('50.00')  # Default shipping cost
+
+
+def send_login_alert_email(user, identifier=None):
+    if not user or not getattr(user, 'email', None):
+        return
+
+    site_settings = SiteSettings.load()
+    subject = f"Login Alert - {site_settings.site_name}"
+    name = user.get_full_name() or user.username
+    ident_text = f" using {identifier}" if identifier else ""
+    plain_message = (
+        f"Hi {name},\n\n"
+        f"You have successfully logged in to {site_settings.site_name}{ident_text}.\n\n"
+        f"If this wasn't you, please change your password immediately."
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        print(f"Error sending login alert email: {e}")
+
+
+def _send_sms_via_http(phone, message):
+    api_url = getattr(settings, 'SMS_API_URL', '')
+    api_key = getattr(settings, 'SMS_API_KEY', '')
+
+    if not api_url or not api_key:
+        return False
+
+    payload = {
+        'to': phone,
+        'message': message,
+    }
+
+    req = urllib.request.Request(
+        api_url,
+        data=json.dumps(payload).encode('utf-8'),
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}',
+        },
+        method='POST',
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return 200 <= resp.status < 300
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+        print(f"Error sending SMS: {e}")
+        return False
+
+
+def send_sms(phone, message):
+    if not phone or not message:
+        return False
+    try:
+        return _send_sms_via_http(phone, message)
+    except Exception as e:
+        print(f"Error sending SMS: {e}")
+        return False
+
+
+def send_login_alert_sms(phone, site_name=None):
+    site_settings = SiteSettings.load()
+    name = site_name or site_settings.site_name
+    message = f"You have successfully logged in to {name}. If this wasn't you, secure your account."
+    return send_sms(phone, message)
+
+
+def send_order_confirmation_sms(order, phone=None):
+    if not order:
+        return False
+
+    site_settings = SiteSettings.load()
+    target_phone = phone
+    if not target_phone:
+        try:
+            if getattr(order, 'shipping_address', None) and order.shipping_address.phone:
+                target_phone = order.shipping_address.phone
+        except Exception:
+            target_phone = None
+
+    if not target_phone:
+        return False
+
+    message = (
+        f"Order placed successfully! Order: {order.order_number}. "
+        f"Total: ₹{order.total}. Thanks for shopping with {site_settings.site_name}."
+    )
+    return send_sms(target_phone, message)
 

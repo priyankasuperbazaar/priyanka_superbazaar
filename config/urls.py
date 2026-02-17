@@ -16,13 +16,11 @@ admin.site.index_title = "Priyanka Superbazaar"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/", include("allauth.urls")),
     path("", include("store.urls")),
 ]
 
 # Serve media files in development
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
 

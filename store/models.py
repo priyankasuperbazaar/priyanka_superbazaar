@@ -144,6 +144,38 @@ class ProductImage(models.Model):
         return f"Image for {self.product.name}"
 
 
+class CustomerProfile(TimeStampedModel):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='customer_profile',
+        verbose_name=_('user'),
+    )
+    phone = models.CharField(_('phone number'), max_length=20, unique=True)
+
+    class Meta:
+        verbose_name = _('customer profile')
+        verbose_name_plural = _('customer profiles')
+
+    def __str__(self):
+        return f"{self.user.username} ({self.phone})"
+
+
+class PasswordResetOTP(TimeStampedModel):
+    phone = models.CharField(_('phone number'), max_length=20, db_index=True)
+    otp = models.CharField(_('otp'), max_length=10)
+    expires_at = models.DateTimeField(_('expires at'))
+    is_used = models.BooleanField(_('is used'), default=False)
+
+    class Meta:
+        verbose_name = _('password reset otp')
+        verbose_name_plural = _('password reset otps')
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f"OTP for {self.phone}"
+
+
 class ProductReview(TimeStampedModel):
     """Product reviews by users"""
     RATING_CHOICES = [

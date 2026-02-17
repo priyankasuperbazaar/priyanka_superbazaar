@@ -118,7 +118,7 @@ $(document).ready(function() {
                                     </button>
                                 </form>
                                 {% else %}
-                                <a href="{% url 'login' %}?next={{ request.path }}" class="position-absolute" style="top: 10px; right: 10px;">
+                                <a href="{% url 'store:customer_login' %}?next={{ request.path }}" class="position-absolute" style="top: 10px; right: 10px;">
                                     <button class="btn btn-sm btn-light rounded-circle shadow-sm p-2" title="Login to add to wishlist">
                                         <i class="far fa-heart"></i>
                                     </button>

@@ -1,7 +1,5 @@
 {% extends 'base/base.html' %}
 
-{% block title %}Create Account - Priyanka Superbazaar{% endblock %}
-
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -57,14 +55,6 @@
                                 Please enter a valid email address.
                             </div>
                         </div>
-
-                        <div class="form-floating mb-3">
-                            <input type="text" name="phone" class="form-control form-control-lg" id="id_phone" placeholder="Enter your phone number" required>
-                            <label for="id_phone" class="form-label">Contact Number</label>
-                            <div class="invalid-feedback">
-                                Please enter your phone number.
-                            </div>
-                        </div>
                         
                         <div class="form-floating mb-3">
                             <input type="password" name="password1" class="form-control form-control-lg" id="id_password1" placeholder="Create a password" required>
@@ -89,7 +79,7 @@
                     
                     <div class="text-center">
                         <p class="text-muted mb-0">Already have an account?</p>
-                        <a href="{% url 'store:customer_login' %}" class="btn btn-outline-success btn-sm">
+                        <a href="{% url 'store:login' %}" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-sign-in-alt me-1"></i>Sign In
                         </a>
                     </div>
@@ -131,7 +121,7 @@
       form.classList.add('was-validated')
     }, false)
   })
-})
+})()
 
 // Password confirmation validation
 document.getElementById('id_password2').addEventListener('input', function() {

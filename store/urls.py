@@ -12,6 +12,10 @@ urlpatterns = [
     path("products/<int:id>/<slug:slug>/", views.product_detail, name="product_detail"),
     path("about/", views.about, name="about"),
     path("contact/", views.contact, name="contact"),
+    path("customer/login/", views.custom_login, name="customer_login"),
+    path("customer/password/reset/", views.password_reset_phone, name="password_reset_phone"),
+    path("customer/password/reset/verify/", views.password_reset_verify, name="password_reset_verify"),
+    path("customer/password/reset/resend/", views.password_reset_resend_otp, name="password_reset_resend_otp"),
     path("account/signup/", views.account_signup, name="account_signup"),
     path("account/profile/", views.account_profile, name="account_profile"),
     path("account/orders/", views.account_orders, name="account_orders"),
@@ -55,4 +59,6 @@ urlpatterns = [
     # Promo Code
     path("checkout/promo-code/apply/", views.apply_promo_code, name="apply_promo_code"),
     path("checkout/promo-code/set/", views.set_promo_code, name="set_promo_code"),
+
+    path("api/search-suggestions/", views.search_suggestions, name="search_suggestions"),
 ]
