@@ -19,7 +19,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'priyanka-superbazaar.onrender.com',
+]
 
 # ---------------------------
 # APPS
@@ -100,9 +105,9 @@ DATABASES = {
 # AUTHENTICATION
 # ---------------------------
 AUTHENTICATION_BACKENDS = [
-    'store.utils.EmailOrUsernameModelBackend',  # Custom backend for email/username login
+    'store.utils.EmailOrUsernameModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
-    'django.contrib.auth.backends.ModelBackend',  # Default backend as fallback
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 SITE_ID = int(os.getenv('SITE_ID', '1'))
@@ -115,13 +120,8 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
     }
 }
 
@@ -144,15 +144,18 @@ USE_TZ = True
 # STATIC & MEDIA (Cloudinary)
 # ---------------------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL = '/media/'
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-MEDIA_URL = ''
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
-
-
 
 # ---------------------------
 # LOGIN
