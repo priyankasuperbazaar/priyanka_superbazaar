@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import transaction
+from django.db import IntegrityError
 from django.db.utils import OperationalError
 from django.db.models import Q, Count
 from decimal import Decimal
@@ -41,7 +42,8 @@ from .forms import (
 from .utils import (
     send_order_confirmation_email, send_order_status_update_email,
     send_contact_form_email, calculate_tax, calculate_shipping_cost,
-    send_order_confirmation_sms
+    send_order_confirmation_sms, send_registration_confirmation_email,
+    send_registration_confirmation_sms
 )
 
 
@@ -97,9 +99,27 @@ def account_signup(request):
     if request.method == 'POST':
         form = CustomRegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            auth_login(request, user)
-            return redirect('store:home')
+            try:
+                user = form.save()
+            except IntegrityError:
+                form.add_error(None, 'Registration failed. Please try again with a different email/username/phone.')
+            else:
+                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+                try:
+                    send_registration_confirmation_email(user)
+                except Exception:
+                    pass
+
+                try:
+                    profile = getattr(user, 'customer_profile', None)
+                    phone = getattr(profile, 'phone', None)
+                    if phone:
+                        send_registration_confirmation_sms(phone, user_name=(user.get_full_name() or user.username))
+                except Exception:
+                    pass
+
+                return redirect('store:account_profile')
     else:
         form = CustomRegisterForm()
     return render(request, 'store/account_signup.html', {'form': form})

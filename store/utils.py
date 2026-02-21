@@ -309,3 +309,40 @@ def send_order_confirmation_sms(order, phone=None):
     )
     return send_sms(target_phone, message)
 
+
+def send_registration_confirmation_email(user):
+    if not user or not getattr(user, 'email', None):
+        return False
+
+    site_settings = SiteSettings.load()
+    subject = f"Welcome to {site_settings.site_name}"
+    name = user.get_full_name() or user.username
+    plain_message = (
+        f"Hi {name},\n\n"
+        f"Your account has been created successfully on {site_settings.site_name}.\n\n"
+        f"Thank you for registering."
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Error sending registration email: {e}")
+        return False
+
+
+def send_registration_confirmation_sms(phone, user_name=None):
+    if not phone:
+        return False
+
+    site_settings = SiteSettings.load()
+    name = user_name or site_settings.site_name
+    message = f"Registration successful on {site_settings.site_name}. Welcome {name}!"
+    return send_sms(phone, message)
+

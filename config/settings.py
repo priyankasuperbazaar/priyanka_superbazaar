@@ -11,15 +11,26 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "priyanka-superbazaar.onrender.com",
-    "www.priyankasuperbazaar.com",
-    "priyankasuperbazaar.com"
-]
+def _env_bool(name: str, default: bool = False) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return str(val).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+
+DEBUG = _env_bool('DEBUG', False)
+
+_allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
+if _allowed_hosts_env:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        'priyanka-superbazaar.onrender.com',
+        'www.priyankasuperbazaar.com',
+        'priyankasuperbazaar.com',
+    ]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -41,6 +52,15 @@ INSTALLED_APPS = [
     'cloudinary_storage',
 ]
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 6,
+        }
+    },
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -53,8 +73,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'priyanka_superbazaar.config.urls'
-WSGI_APPLICATION = 'priyanka_superbazaar.config.wsgi.application'
+ROOT_URLCONF = 'config.urls'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 TEMPLATES = [
     {
@@ -75,11 +95,13 @@ TEMPLATES = [
 
 import dj_database_url
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 DATABASES = {
     "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
+        default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=bool(DATABASE_URL) and not DATABASE_URL.startswith("sqlite"),
     )
 }
 
@@ -96,12 +118,33 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 MEDIA_URL = '/media/'
 
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
+if not CLOUDINARY_URL:
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+    if cloud_name and api_key and api_secret:
+        CLOUDINARY_URL = f"cloudinary://{api_key}:{api_secret}@{cloud_name}"
+
+cloudinary.config(
+    cloudinary_url=CLOUDINARY_URL,
+    secure=True,
+)
+
+CLOUDINARY_STORAGE = {
+    'CLOUDINARY_URL': CLOUDINARY_URL,
+}
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 
 LOGIN_REDIRECT_URL = '/account/profile/'
 

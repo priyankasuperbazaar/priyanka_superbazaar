@@ -17,6 +17,9 @@
                     {% if form.errors %}
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <strong>Registration Failed</strong> Please correct the errors below.
+                            <div class="mt-2">
+                                {{ form.errors }}
+                            </div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     {% endif %}
@@ -27,8 +30,11 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <div class="form-floating">
-                                    <input type="text" name="first_name" class="form-control form-control-lg" id="id_first_name" placeholder="First name" required>
+                                    {{ form.first_name }}
                                     <label for="id_first_name" class="form-label">First Name</label>
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.first_name.errors|striptags }}</div>
+                                    {% endif %}
                                     <div class="invalid-feedback">
                                         Please enter your first name.
                                     </div>
@@ -36,51 +42,73 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <div class="form-floating">
-                                    <input type="text" name="last_name" class="form-control form-control-lg" id="id_last_name" placeholder="Last name">
+                                    {{ form.last_name }}
                                     <label for="id_last_name" class="form-label">Last Name</label>
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.last_name.errors|striptags }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         
                         <div class="form-floating mb-3">
-                            <input type="text" name="username" class="form-control form-control-lg" id="id_username" placeholder="Choose a username" required>
+                            {{ form.username }}
                             <label for="id_username" class="form-label">Username</label>
+                            {% if form.username.errors %}
+                                <div class="text-danger small mt-1">{{ form.username.errors|striptags }}</div>
+                            {% endif %}
                             <div class="invalid-feedback">
                                 Please choose a username.
                             </div>
                         </div>
                         
                         <div class="form-floating mb-3">
-                            <input type="email" name="email" class="form-control form-control-lg" id="id_email" placeholder="Enter your email address" required>
+                            {{ form.email }}
                             <label for="id_email" class="form-label">Email Address</label>
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
+                            {% endif %}
                             <div class="invalid-feedback">
                                 Please enter a valid email address.
                             </div>
                         </div>
 
                         <div class="form-floating mb-3">
-                            <input type="text" name="phone" class="form-control form-control-lg" id="id_phone" placeholder="Enter your phone number" required>
+                            {{ form.phone }}
                             <label for="id_phone" class="form-label">Contact Number</label>
+                            {% if form.phone.errors %}
+                                <div class="text-danger small mt-1">{{ form.phone.errors|striptags }}</div>
+                            {% endif %}
                             <div class="invalid-feedback">
                                 Please enter your phone number.
                             </div>
                         </div>
                         
                         <div class="form-floating mb-3">
-                            <input type="password" name="password1" class="form-control form-control-lg" id="id_password1" placeholder="Create a password" required>
+                            {{ form.password1 }}
                             <label for="id_password1" class="form-label">Password</label>
+                            {% if form.password1.errors %}
+                                <div class="text-danger small mt-1">{{ form.password1.errors|striptags }}</div>
+                            {% endif %}
                             <div class="invalid-feedback">
                                 Please create a password.
                             </div>
                         </div>
                         
                         <div class="form-floating mb-4">
-                            <input type="password" name="password2" class="form-control form-control-lg" id="id_password2" placeholder="Confirm password" required>
+                            {{ form.password2 }}
                             <label for="id_password2" class="form-label">Confirm Password</label>
+                            {% if form.password2.errors %}
+                                <div class="text-danger small mt-1">{{ form.password2.errors|striptags }}</div>
+                            {% endif %}
                             <div class="invalid-feedback">
                                 Please confirm your password.
                             </div>
                         </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="text-danger small mb-3">{{ form.non_field_errors|striptags }}</div>
+                        {% endif %}
                         
                         <button type="submit" class="btn btn-success btn-lg w-100 py-3 mb-3">
                             <i class="fas fa-user-plus me-2"></i>Create Account

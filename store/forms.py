@@ -65,21 +65,20 @@ class CustomRegisterForm(UserCreationForm):
                 'class': 'form-control form-control-lg',
                 'placeholder': 'Last name'
             }),
-            'password1': forms.PasswordInput(attrs={
-                'class': 'form-control form-control-lg',
-                'placeholder': 'Create a password'
-            }),
-            'password2': forms.PasswordInput(attrs={
-                'class': 'form-control form-control-lg',
-                'placeholder': 'Confirm password'
-            }),
         }
-    
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise ValidationError('A user with this email already exists.')
-        return email
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'password1' in self.fields:
+            self.fields['password1'].widget.attrs.update({
+                'class': 'form-control form-control-lg',
+                'placeholder': 'Create a password',
+            })
+        if 'password2' in self.fields:
+            self.fields['password2'].widget.attrs.update({
+                'class': 'form-control form-control-lg',
+                'placeholder': 'Confirm password',
+            })
     
     def clean_username(self):
         username = self.cleaned_data.get('username')
@@ -91,8 +90,6 @@ class CustomRegisterForm(UserCreationForm):
         phone = (self.cleaned_data.get('phone') or '').strip()
         if not phone:
             raise ValidationError('Phone number is required.')
-        if CustomerProfile.objects.filter(phone=phone).exists():
-            raise ValidationError('This phone number is already registered.')
         return phone
 
     def save(self, commit=True):

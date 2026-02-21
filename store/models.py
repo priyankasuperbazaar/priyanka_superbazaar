@@ -151,7 +151,7 @@ class CustomerProfile(TimeStampedModel):
         related_name='customer_profile',
         verbose_name=_('user'),
     )
-    phone = models.CharField(_('phone number'), max_length=20, unique=True)
+    phone = models.CharField(_('phone number'), max_length=20)
 
     class Meta:
         verbose_name = _('customer profile')
