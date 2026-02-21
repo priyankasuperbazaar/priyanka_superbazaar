@@ -53,8 +53,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'config.urls'
-WSGI_APPLICATION = 'config.wsgi.application'
+ROOT_URLCONF = 'priyanka_superbazaar.config.urls'
+WSGI_APPLICATION = 'priyanka_superbazaar.config.wsgi.application'
 
 TEMPLATES = [
     {
