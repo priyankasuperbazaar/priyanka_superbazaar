@@ -1216,19 +1216,29 @@ def order_invoice(request, order_number):
 
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
+import os
 
 def create_render_admin(request):
     User = get_user_model()
-    username = "priyanka_superbazaar"
-    password = "priyanka@rahul2025"
-    email = "admin@priyankasuperbazaar.com"
+    token_required = os.getenv('BOOTSTRAP_ADMIN_TOKEN')
+    token_provided = (request.GET.get('token') or '').strip()
 
-    if User.objects.filter(username=username).exists():
-        return HttpResponse("Admin already exists!")
+    if token_required and token_provided != token_required:
+        return HttpResponse('Forbidden', status=403)
 
-    User.objects.create_superuser(
-        username=username,
-        email=email,
-        password=password
-    )
-    return HttpResponse("Admin created successfully!")
+    username = os.getenv('BOOTSTRAP_ADMIN_USERNAME', 'priyanka_superbazaar')
+    password = os.getenv('BOOTSTRAP_ADMIN_PASSWORD')
+    email = os.getenv('BOOTSTRAP_ADMIN_EMAIL', 'admin@priyankasuperbazaar.com')
+
+    if not password:
+        return HttpResponse('Missing BOOTSTRAP_ADMIN_PASSWORD', status=500)
+
+    user, _created = User.objects.get_or_create(username=username, defaults={'email': email})
+    if email:
+        user.email = email
+    user.is_staff = True
+    user.is_superuser = True
+    user.set_password(password)
+    user.save()
+
+    return HttpResponse('Admin ready')
