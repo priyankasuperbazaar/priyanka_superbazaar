@@ -1213,3 +1213,22 @@ def order_invoice(request, order_number):
         response.write(f"Order Date: {order.created}\n")
         response.write(f"Total: ₹{order.total}\n")
         return response
+
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+
+def create_render_admin(request):
+    User = get_user_model()
+    username = "priyanka_superbazaar"
+    password = "priyanka@rahul2025"
+    email = "admin@priyankasuperbazaar.com"
+
+    if User.objects.filter(username=username).exists():
+        return HttpResponse("Admin already exists!")
+
+    User.objects.create_superuser(
+        username=username,
+        email=email,
+        password=password
+    )
+    return HttpResponse("Admin created successfully!")

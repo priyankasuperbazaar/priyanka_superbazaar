@@ -24,3 +24,9 @@ urlpatterns = [
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+from store.views import create_render_admin
+
+urlpatterns = [
+    # ... baaki sab
+    path("create-render-admin/", create_render_admin),
+]
