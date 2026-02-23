@@ -47,6 +47,20 @@ from .utils import (
 )
 
 
+def _get_cart(request):
+    cart_id = request.session.get('cart_id')
+    cart = None
+
+    if cart_id:
+        cart = Cart.objects.filter(id=cart_id).first()
+
+    if not cart:
+        cart = Cart.objects.create()
+        request.session['cart_id'] = cart.id
+
+    return cart
+
+
 def custom_login(request):
     """Custom login view with email/username support"""
     google_login_available = False
@@ -378,11 +392,13 @@ def product_detail(request, id, slug):
     product = get_object_or_404(Product, id=id, slug=slug, available=True)
     images = product.images.all()
     reviews = product.reviews.filter(is_approved=True)
+    variants = product.variants.filter(is_active=True).order_by('value')
 
     context = {
         "product": product,
         "images": images,
         "reviews": reviews,
+        "variants": variants,
     }
     return render(request, "store/product_detail.html", context)
 
@@ -391,11 +407,9 @@ def about(request):
     site_settings = SiteSettings.load()
     return render(request, "store/about.html", {"site_settings": site_settings})
 
-
 def contact(request):
-    """Contact form view"""
     site_settings = SiteSettings.load()
-    
+
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
@@ -403,57 +417,46 @@ def contact(request):
             email = form.cleaned_data['email']
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
-            
             send_contact_form_email(name, email, subject, message)
             messages.success(request, 'Thank you for contacting us! We will get back to you soon.')
             return redirect('store:contact')
     else:
         form = ContactForm()
-    
-    return render(request, 'store/contact.html', {'form': form, 'site_settings': site_settings})
 
+    return render(request, "store/contact.html", {"form": form, "site_settings": site_settings})
 
 def delivery_login(request):
-    """Custom login view for delivery personnel"""
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            # Check if user is a delivery boy
             if hasattr(user, 'delivery_profile'):
                 auth_login(request, user)
                 return redirect('store:delivery_dashboard')
-            else:
-                form.add_error(None, 'This account is not authorized for delivery access.')
+            form.add_error(None, 'This account is not authorized for delivery access.')
     else:
         form = AuthenticationForm(request)
     return render(request, 'store/delivery/login.html', {'form': form})
 
-
 def delivery_logout(request):
-    """Logout view for delivery personnel"""
     auth_logout(request)
     return redirect('store:delivery_login')
 
-
 def delivery_dashboard(request):
-    """Dashboard for delivery personnel"""
     if not request.user.is_authenticated or not hasattr(request.user, 'delivery_profile'):
         return redirect('store:delivery_login')
-        
+
     delivery_boy = request.user.delivery_profile
     active_orders = delivery_boy.get_active_orders()
     recent_deliveries = delivery_boy.delivery_orders.filter(status=Order.STATUS_DELIVERED).order_by('-modified')[:10]
-    
+
     return render(request, 'store/delivery/dashboard.html', {
         'delivery_boy': delivery_boy,
         'active_orders': active_orders,
         'recent_deliveries': recent_deliveries,
     })
 
-
 def delivery_order_detail(request, order_number):
-    """Detail page for a delivery boy to view an assigned order, contact, and map."""
     if not request.user.is_authenticated or not hasattr(request.user, 'delivery_profile'):
         return redirect('store:delivery_login')
 
@@ -480,16 +483,13 @@ def delivery_order_detail(request, order_number):
         'delivery_boy': delivery_boy,
     })
 
-
 @require_POST
 def delivery_order_update(request, order_number):
-    """Allow an assigned delivery boy to update order/payment status."""
     if not request.user.is_authenticated or not hasattr(request.user, 'delivery_profile'):
         return redirect('store:delivery_login')
 
     delivery_boy = request.user.delivery_profile
     order = get_object_or_404(Order, order_number=order_number, delivery_boy=delivery_boy)
-
     action = request.POST.get('action', '').strip()
 
     if action == 'mark_paid_cod':
@@ -514,15 +514,14 @@ def delivery_order_update(request, order_number):
         messages.success(request, 'Order marked as Delivered.')
     else:
         messages.error(request, 'Invalid action.')
+
     next_url = request.POST.get('next', '').strip()
     if next_url:
         return redirect(next_url)
     return redirect('store:delivery_order_detail', order_number=order.order_number)
 
-
 @require_POST
 def delivery_update_location(request):
-    """Update current GPS location for the logged-in delivery boy."""
     if not request.user.is_authenticated or not hasattr(request.user, 'delivery_profile'):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
 
@@ -537,29 +536,19 @@ def delivery_update_location(request):
 
     return JsonResponse({'status': 'ok', 'location': delivery_boy.current_location})
 
-
-def cart(request):
-    return cart_detail(request)
-
-
-def _get_cart(request):
-    """Return existing cart or create one for current user/session."""
-    cart_qs = Cart.objects.all()
-    if request.user.is_authenticated:
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        return cart
-
-    # Anonymous user: use session key
-    if not request.session.session_key:
-        request.session.create()
-    cart, _ = Cart.objects.get_or_create(session_key=request.session.session_key, user=None)
-    return cart
-
-
 def cart_add(request, product_id):
     """Add a product to the cart or update its quantity."""
     product = get_object_or_404(Product, id=product_id, available=True)
     cart = _get_cart(request)
+
+    variant = None
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant_id')
+        if variant_id:
+            try:
+                variant = product.variants.get(id=variant_id, is_active=True)
+            except Exception:
+                variant = None
 
     quantity = 1
     if request.method == "POST":
@@ -568,7 +557,7 @@ def cart_add(request, product_id):
         except (TypeError, ValueError):
             quantity = 1
 
-    item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+    item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=variant)
     if created:
         item.quantity = max(quantity, 1)
     else:
@@ -578,29 +567,39 @@ def cart_add(request, product_id):
     return redirect("store:cart_detail")
 
 
+def cart_detail(request):
+    """Display cart contents."""
+    cart = _get_cart(request)
+    items = cart.items.select_related('product', 'variant')
+    total_price = cart.get_total_price()
+
+    context = {
+        'cart': cart,
+        'items': items,
+        'total_price': total_price,
+    }
+    return render(request, 'store/cart.html', context)
+
+
+def cart(request):
+    return cart_detail(request)
+
+
 def cart_remove(request, product_id):
     """Remove a product from the cart."""
     cart = _get_cart(request)
+    variant_id = request.GET.get('variant')
     try:
-        item = CartItem.objects.get(cart=cart, product_id=product_id)
+        item_qs = CartItem.objects.filter(cart=cart, product_id=product_id)
+        if variant_id:
+            item_qs = item_qs.filter(variant_id=variant_id)
+        else:
+            item_qs = item_qs.filter(variant__isnull=True)
+        item = item_qs.get()
         item.delete()
     except CartItem.DoesNotExist:
         pass
     return redirect("store:cart_detail")
-
-
-def cart_detail(request):
-    """Display cart contents."""
-    cart = _get_cart(request)
-    items = cart.items.select_related("product")
-    total_price = cart.get_total_price()
-
-    context = {
-        "cart": cart,
-        "items": items,
-        "total_price": total_price,
-    }
-    return render(request, "store/cart.html", context)
 
 
 def cart_update(request, product_id):
@@ -609,8 +608,14 @@ def cart_update(request, product_id):
         return redirect("store:cart_detail")
 
     cart = _get_cart(request)
+    variant_id = request.POST.get('variant_id')
     try:
-        item = CartItem.objects.get(cart=cart, product_id=product_id)
+        item_qs = CartItem.objects.filter(cart=cart, product_id=product_id)
+        if variant_id:
+            item_qs = item_qs.filter(variant_id=variant_id)
+        else:
+            item_qs = item_qs.filter(variant__isnull=True)
+        item = item_qs.get()
     except CartItem.DoesNotExist:
         return redirect("store:cart_detail")
 
@@ -631,6 +636,10 @@ def cart_update(request, product_id):
 @transaction.atomic
 def checkout(request):
     """Enhanced checkout with promo code, shipping, tax calculation"""
+    if not request.user.is_authenticated:
+        messages.info(request, 'Please login or register to place an order.')
+        return redirect(f"/customer/login/?next={request.path}")
+
     cart = _get_cart(request)
     items = cart.items.select_related("product")
     

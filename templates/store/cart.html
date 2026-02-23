@@ -23,20 +23,33 @@
                     {% for item in items %}
                         <tr>
                             <td>
-                                <strong>{{ item.product.name }}</strong><br>
+                                <strong>{{ item.product.name }}</strong>
+                                {% if item.variant %}
+                                    <br><small class="text-muted">{{ item.variant }}</small>
+                                {% endif %}
+                                <br>
                                 <small class="text-muted">{{ item.product.category.name }}</small>
                             </td>
-                            <td class="text-end">₹{{ item.product.discount_price|default:item.product.price }}</td>
+                            <td class="text-end">
+                                {% if item.variant %}
+                                    ₹{{ item.variant.price }}
+                                {% else %}
+                                    ₹{{ item.product.discount_price|default:item.product.price }}
+                                {% endif %}
+                            </td>
                             <td class="text-center">
                                 <form method="post" action="{% url 'store:cart_update' item.product.id %}" class="d-inline-flex align-items-center justify-content-center">
                                     {% csrf_token %}
+                                    {% if item.variant %}
+                                        <input type="hidden" name="variant_id" value="{{ item.variant.id }}">
+                                    {% endif %}
                                     <input type="number" name="quantity" min="1" value="{{ item.quantity }}" class="form-control form-control-sm text-center" style="width: 70px;">
                                     <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Update</button>
                                 </form>
                             </td>
                             <td class="text-end">₹{{ item.get_cost }}</td>
                             <td class="text-end">
-                                <a href="{% url 'store:cart_remove' item.product.id %}" class="btn btn-sm btn-outline-danger">Remove</a>
+                                <a href="{% url 'store:cart_remove' item.product.id %}{% if item.variant %}?variant={{ item.variant.id }}{% endif %}" class="btn btn-sm btn-outline-danger">Remove</a>
                             </td>
                         </tr>
                     {% endfor %}

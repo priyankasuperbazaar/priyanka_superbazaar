@@ -76,6 +76,18 @@ class Product(TimeStampedModel):
     available = models.BooleanField(_('available'), default=True)
     featured = models.BooleanField(_('featured'), default=False)
     image = CloudinaryField(_('main image'), blank=True, null=True)
+    unit_type = models.CharField(
+        _('unit type'),
+        max_length=10,
+        choices=[
+            ('ml', 'ml'),
+            ('l', 'L'),
+            ('g', 'g'),
+            ('kg', 'kg'),
+            ('pcs', 'pcs'),
+        ],
+        default='pcs',
+    )
 
     class Meta:
         verbose_name = _('product')
@@ -129,6 +141,39 @@ class ProductImage(TimeStampedModel):
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+
+class ProductVariant(TimeStampedModel):
+    product = models.ForeignKey(
+        Product,
+        related_name='variants',
+        on_delete=models.CASCADE,
+        verbose_name=_('product'),
+    )
+    value = models.DecimalField(_('value'), max_digits=10, decimal_places=2)
+    price = models.DecimalField(
+        _('price'),
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    stock = models.PositiveIntegerField(_('stock'), default=0)
+    is_active = models.BooleanField(_('is active'), default=True)
+
+    class Meta:
+        verbose_name = _('product variant')
+        verbose_name_plural = _('product variants')
+        ordering = ('value',)
+        unique_together = ('product', 'value')
+        indexes = [
+            models.Index(fields=['product', 'is_active'], name='variant_active_idx'),
+        ]
+
+    def __str__(self):
+        unit = getattr(self.product, 'unit_type', 'pcs')
+        unit_label = 'L' if unit == 'l' else unit
+        val = int(self.value) if self.value == int(self.value) else self.value
+        return f"{self.product.name} - {val} {unit_label}"
 
 
 class CustomerProfile(TimeStampedModel):
@@ -278,6 +323,14 @@ class CartItem(TimeStampedModel):
         on_delete=models.CASCADE,
         verbose_name=_('product')
     )
+    variant = models.ForeignKey(
+        ProductVariant,
+        related_name='cart_items',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_('variant'),
+    )
     quantity = models.PositiveIntegerField(
         _('quantity'),
         default=1,
@@ -287,15 +340,20 @@ class CartItem(TimeStampedModel):
     class Meta:
         verbose_name = _('cart item')
         verbose_name_plural = _('cart items')
-        unique_together = ('cart', 'product')
+        unique_together = ('cart', 'product', 'variant')
         ordering = ('-created',)
 
     def __str__(self):
+        if self.variant_id:
+            return f"{self.quantity} x {self.variant}"
         return f"{self.quantity} x {self.product.name}"
 
     def get_cost(self):
         """Calculate the total cost of this cart item"""
-        price = self.product.discount_price or self.product.price
+        if self.variant_id:
+            price = self.variant.price
+        else:
+            price = self.product.discount_price or self.product.price
         return price * self.quantity
 
     def save(self, *args, **kwargs):
@@ -639,11 +697,12 @@ class Order(TimeStampedModel):
         """Generate a unique order number"""
         import random
         import string
-        
-        # Format: ORD-{timestamp}-{random 6 chars}
-        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+
+        # Keep within max_length=20.
+        # Format: YYMMDDHHMMSS + 6 random chars => 12 + 6 = 18
+        timestamp = timezone.now().strftime('%y%m%d%H%M%S')
         random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        return f"ORD-{timestamp}-{random_str}"
+        return f'{timestamp}{random_str}'
     
     def mark_as_paid(self, payment_id=None):
         """Mark order as paid"""

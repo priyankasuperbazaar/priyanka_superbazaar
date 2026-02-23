@@ -22,7 +22,7 @@ from django.conf import settings
 from .models import (
     Category, Product, ProductImage, ProductReview, Wishlist, Cart, CartItem,
     PromoCode, Address, Order, OrderItem, Payment, ShippingMethod, SiteSettings,
-    Offer, DeliveryBoy, CustomerProfile, PasswordResetOTP,
+    Offer, DeliveryBoy, CustomerProfile, PasswordResetOTP, ProductVariant,
 )
 
 User = get_user_model()
@@ -33,6 +33,12 @@ class ProductImageInline(admin.TabularInline):
     extra = 1
     fields = ('image', 'alt_text', 'is_featured')
     readonly_fields = ()
+
+
+class ProductVariantInline(admin.TabularInline):
+    model = ProductVariant
+    extra = 1
+    fields = ('value', 'price', 'stock', 'is_active')
 
 
 class ProductReviewInline(admin.TabularInline):
@@ -83,7 +89,13 @@ class ProductAdmin(admin.ModelAdmin):
     autocomplete_fields = ('category',)
     ordering = ('-created',)
     date_hierarchy = 'created'
-    inlines = [ProductImageInline, ProductReviewInline]
+    fields = (
+        'category', 'name', 'slug', 'description',
+        'price', 'discount_price', 'stock', 'available', 'featured',
+        'unit_type', 'image',
+        'created', 'modified',
+    )
+    inlines = [ProductVariantInline, ProductImageInline, ProductReviewInline]
 
 
 @admin.register(ProductReview)
