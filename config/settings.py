@@ -6,31 +6,22 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 
-def _env_bool(name: str, default: bool = False) -> bool:
-    val = os.getenv(name)
-    if val is None:
-        return default
-    return str(val).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+DEBUG = True
 
-DEBUG = _env_bool('DEBUG', False)
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 _allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
 if _allowed_hosts_env:
-    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
-else:
-    ALLOWED_HOSTS = [
-        'localhost',
-        '127.0.0.1',
-        'priyanka-superbazaar.onrender.com',
-        'www.priyankasuperbazaar.com',
-        'priyankasuperbazaar.com',
-    ]
+    ALLOWED_HOSTS += [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -119,6 +110,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 if not CLOUDINARY_URL:
@@ -128,10 +120,22 @@ if not CLOUDINARY_URL:
     if cloud_name and api_key and api_secret:
         CLOUDINARY_URL = f"cloudinary://{api_key}:{api_secret}@{cloud_name}"
 
-cloudinary.config(
-    cloudinary_url=CLOUDINARY_URL,
-    secure=True,
-)
+cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+api_key = os.getenv("CLOUDINARY_API_KEY")
+api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+if CLOUDINARY_URL:
+    os.environ["CLOUDINARY_URL"] = CLOUDINARY_URL
+
+if cloud_name and api_key and api_secret:
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True,
+    )
+else:
+    cloudinary.config(secure=True)
 
 CLOUDINARY_STORAGE = {
     'CLOUDINARY_URL': CLOUDINARY_URL,
@@ -156,3 +160,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+DEBUG = True
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']

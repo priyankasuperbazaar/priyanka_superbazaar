@@ -262,7 +262,7 @@ def password_reset_verify(request):
                 otp=otp,
                 is_used=False,
                 expires_at__gt=timezone.now(),
-            ).order_by('-created_at').first()
+            ).order_by('-created').first()
         except OperationalError:
             messages.error(request, 'System setup pending. Please run migrations and try again.')
             return redirect('store:password_reset_phone')
@@ -285,10 +285,11 @@ def password_reset_verify(request):
         user.save(update_fields=['password'])
 
         otp_obj.is_used = True
-        otp_obj.save(update_fields=['is_used', 'updated_at'])
+        otp_obj.save(update_fields=['is_used', 'modified'])
 
         try:
             request.session.pop('password_reset_phone', None)
+            request.session.pop('password_reset_otp_expires_at', None)
         except Exception:
             pass
 
@@ -321,7 +322,7 @@ def password_reset_verify(request):
 def home(request):
     """Homepage showing featured products and categories."""
     featured_products = Product.objects.filter(available=True, featured=True)[:8]
-    latest_products = Product.objects.filter(available=True).order_by("-created_at")[:8]
+    latest_products = Product.objects.filter(available=True).order_by("-created")[:8]
     offers = Offer.objects.filter(is_active=True)[:3]
     context = {
         "featured_products": featured_products,
@@ -335,7 +336,7 @@ def product_list(request, category_slug=None):
     """List products, optionally filtered by category."""
     category = None
     products = Product.objects.filter(available=True)
-    categories = Category.objects.filter(is_active=True)
+    categories = Category.objects.all().order_by('name')
     
     # Get wishlist items for the current user
     wishlist_ids = []
@@ -345,7 +346,7 @@ def product_list(request, category_slug=None):
     query = request.GET.get("q", "").strip()
 
     if category_slug:
-        category = get_object_or_404(Category, slug=category_slug, is_active=True)
+        category = get_object_or_404(Category, slug=category_slug)
         products = products.filter(category=category)
 
     if query:
@@ -442,7 +443,7 @@ def delivery_dashboard(request):
         
     delivery_boy = request.user.delivery_profile
     active_orders = delivery_boy.get_active_orders()
-    recent_deliveries = delivery_boy.delivery_orders.filter(status=Order.STATUS_DELIVERED).order_by('-updated_at')[:10]
+    recent_deliveries = delivery_boy.delivery_orders.filter(status=Order.STATUS_DELIVERED).order_by('-modified')[:10]
     
     return render(request, 'store/delivery/dashboard.html', {
         'delivery_boy': delivery_boy,
@@ -501,15 +502,15 @@ def delivery_order_update(request, order_number):
         messages.success(request, 'Payment marked as Paid (Online).')
     elif action == 'mark_processing':
         order.status = Order.STATUS_PROCESSING
-        order.save(update_fields=['status', 'updated_at'])
+        order.save(update_fields=['status', 'modified'])
         messages.success(request, 'Order marked as Processing.')
     elif action == 'mark_shipped':
         order.status = Order.STATUS_SHIPPED
-        order.save(update_fields=['status', 'updated_at'])
+        order.save(update_fields=['status', 'modified'])
         messages.success(request, 'Order marked as Shipped.')
     elif action == 'mark_delivered':
         order.status = Order.STATUS_DELIVERED
-        order.save(update_fields=['status', 'updated_at'])
+        order.save(update_fields=['status', 'modified'])
         messages.success(request, 'Order marked as Delivered.')
     else:
         messages.error(request, 'Invalid action.')
@@ -532,7 +533,7 @@ def delivery_update_location(request):
 
     delivery_boy = request.user.delivery_profile
     delivery_boy.current_location = f"{lat},{lng}"
-    delivery_boy.save(update_fields=['current_location', 'updated_at'])
+    delivery_boy.save(update_fields=['current_location', 'modified'])
 
     return JsonResponse({'status': 'ok', 'location': delivery_boy.current_location})
 
@@ -746,7 +747,7 @@ def checkout(request):
                 )
                 if candidate:
                     order.delivery_boy = candidate
-                    order.save(update_fields=['delivery_boy', 'updated_at'])
+                    order.save(update_fields=['delivery_boy', 'modified'])
             except Exception:
                 pass
             
@@ -846,7 +847,7 @@ def account_profile(request):
 @login_required
 def account_orders(request):
     """List of orders for the logged-in user."""
-    orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    orders = Order.objects.filter(user=request.user).order_by("-created")
     return render(request, "store/account_orders.html", {"orders": orders})
 
 
@@ -981,7 +982,7 @@ def account_change_password(request):
 @login_required
 def address_list(request):
     """List user addresses"""
-    addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created_at')
+    addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created')
     return render(request, 'store/address_list.html', {'addresses': addresses})
 
 
@@ -1127,7 +1128,7 @@ def order_invoice(request, order_number):
         # Order details
         data = [
             ['Order Number:', order.order_number],
-            ['Order Date:', order.created_at.strftime('%B %d, %Y')],
+            ['Order Date:', order.created.strftime('%B %d, %Y')],
             ['Status:', order.get_status_display()],
             ['Payment Status:', order.get_payment_status_display()],
         ]
@@ -1209,6 +1210,6 @@ def order_invoice(request, order_number):
         response = HttpResponse(content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename="invoice_{order.order_number}.txt"'
         response.write(f"Invoice #{order.order_number}\n")
-        response.write(f"Order Date: {order.created_at}\n")
+        response.write(f"Order Date: {order.created}\n")
         response.write(f"Total: ₹{order.total}\n")
         return response

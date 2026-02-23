@@ -10,6 +10,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from cloudinary.models import CloudinaryField
+from model_utils.models import TimeStampedModel
+
 
 def product_image_path(instance, filename):
     """Generate file path for product images"""
@@ -18,22 +21,11 @@ def product_image_path(instance, filename):
     return os.path.join('products', filename)
 
 
-class TimeStampedModel(models.Model):
-    """Abstract base model with created and modified timestamps"""
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
 class Category(TimeStampedModel):
-    """Product category model"""
     name = models.CharField(_('name'), max_length=200, db_index=True)
     slug = models.SlugField(_('slug'), max_length=200, unique=True)
-    image = models.ImageField(_('image'), upload_to='categories/', blank=True, null=True)
+    image = CloudinaryField(_('image'), blank=True, null=True)
     description = models.TextField(_('description'), blank=True)
-    is_active = models.BooleanField(_('is active'), default=True)
 
     class Meta:
         verbose_name = _('category')
@@ -83,20 +75,16 @@ class Product(TimeStampedModel):
     stock = models.PositiveIntegerField(_('stock'), default=0)
     available = models.BooleanField(_('available'), default=True)
     featured = models.BooleanField(_('featured'), default=False)
-    image = models.ImageField(
-        _('main image'),
-        upload_to=product_image_path,
-        blank=True
-    )
+    image = CloudinaryField(_('main image'), blank=True, null=True)
 
     class Meta:
         verbose_name = _('product')
         verbose_name_plural = _('products')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
         indexes = [
             models.Index(fields=['id', 'slug']),
             models.Index(fields=['name'], name='product_name_idx'),
-            models.Index(fields=['-created_at'], name='created_at_idx'),
+            models.Index(fields=['-created'], name='created_idx'),
         ]
 
     def __str__(self):
@@ -122,7 +110,7 @@ class Product(TimeStampedModel):
         return self.stock > 0
 
 
-class ProductImage(models.Model):
+class ProductImage(TimeStampedModel):
     """Additional product images"""
     product = models.ForeignKey(
         Product,
@@ -130,15 +118,14 @@ class ProductImage(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_('product')
     )
-    image = models.ImageField(_('image'), upload_to=product_image_path)
+    image = CloudinaryField(_('image'))
     alt_text = models.CharField(_('alt text'), max_length=200, blank=True)
     is_featured = models.BooleanField(_('is featured'), default=False)
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
 
     class Meta:
         verbose_name = _('product image')
         verbose_name_plural = _('product images')
-        ordering = ('-is_featured', 'created_at')
+        ordering = ('-is_featured', 'created')
 
     def __str__(self):
         return f"Image for {self.product.name}"
@@ -170,7 +157,7 @@ class PasswordResetOTP(TimeStampedModel):
     class Meta:
         verbose_name = _('password reset otp')
         verbose_name_plural = _('password reset otps')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
 
     def __str__(self):
         return f"OTP for {self.phone}"
@@ -208,7 +195,7 @@ class ProductReview(TimeStampedModel):
     class Meta:
         verbose_name = _('product review')
         verbose_name_plural = _('product reviews')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
         unique_together = ('product', 'user')
 
     def __str__(self):
@@ -255,12 +242,11 @@ class Cart(TimeStampedModel):
         null=True,
         blank=True
     )
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 
     class Meta:
         verbose_name = _('cart')
         verbose_name_plural = _('carts')
-        ordering = ('-updated_at',)
+        ordering = ('-modified',)
 
     def __str__(self):
         if self.user:
@@ -302,7 +288,7 @@ class CartItem(TimeStampedModel):
         verbose_name = _('cart item')
         verbose_name_plural = _('cart items')
         unique_together = ('cart', 'product')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
@@ -313,7 +299,6 @@ class CartItem(TimeStampedModel):
         return price * self.quantity
 
     def save(self, *args, **kwargs):
-        # Update cart's updated_at timestamp
         self.cart.save()
         super().save(*args, **kwargs)
 
@@ -372,7 +357,7 @@ class PromoCode(TimeStampedModel):
     class Meta:
         verbose_name = _('promo code')
         verbose_name_plural = _('promo codes')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
         indexes = [
             models.Index(fields=['code'], name='promo_code_idx'),
             models.Index(fields=['is_active'], name='promo_active_idx'),
@@ -458,7 +443,7 @@ class Address(TimeStampedModel):
     class Meta:
         verbose_name = _('address')
         verbose_name_plural = _('addresses')
-        ordering = ('-is_default', '-created_at')
+        ordering = ('-is_default', '-created')
         indexes = [
             models.Index(fields=['user', 'address_type'], name='user_address_type_idx'),
         ]
@@ -634,11 +619,11 @@ class Order(TimeStampedModel):
     class Meta:
         verbose_name = _('order')
         verbose_name_plural = _('orders')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
         indexes = [
             models.Index(fields=['order_number'], name='order_number_idx'),
             models.Index(fields=['status', 'payment_status'], name='order_status_idx'),
-            models.Index(fields=['created_at'], name='order_created_at_idx'),
+            models.Index(fields=['created'], name='order_created_idx'),
         ]
     
     def __str__(self):
@@ -665,7 +650,7 @@ class Order(TimeStampedModel):
         self.payment_status = self.PAYMENT_STATUS_PAID
         if payment_id:
             self.payment_id = payment_id
-        self.save(update_fields=['payment_status', 'payment_id', 'updated_at'])
+        self.save(update_fields=['payment_status', 'payment_id', 'modified'])
     
     def can_cancel(self):
         """Check if order can be cancelled"""
@@ -677,7 +662,7 @@ class Order(TimeStampedModel):
             raise ValidationError(_('This order cannot be cancelled'))
         
         self.status = self.STATUS_CANCELLED
-        self.save(update_fields=['status', 'updated_at'])
+        self.save(update_fields=['status', 'modified'])
     
     def get_absolute_url(self):
         return reverse('store:order_detail', args=[self.order_number])
@@ -711,7 +696,7 @@ class OrderItem(TimeStampedModel):
     class Meta:
         verbose_name = _('order item')
         verbose_name_plural = _('order items')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
     
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
@@ -808,7 +793,7 @@ class Payment(TimeStampedModel):
     class Meta:
         verbose_name = _('payment')
         verbose_name_plural = _('payments')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
         indexes = [
             models.Index(fields=['transaction_id'], name='payment_txn_id_idx'),
             models.Index(fields=['payment_status'], name='payment_status_idx'),
@@ -837,7 +822,7 @@ class Payment(TimeStampedModel):
         
         # Update order status
         self.order.payment_status = Order.PAYMENT_STATUS_FAILED
-        self.order.save(update_fields=['payment_status', 'updated_at'])
+        self.order.save(update_fields=['payment_status', 'modified'])
 
 
 class ShippingMethod(TimeStampedModel):
@@ -883,8 +868,8 @@ class ShippingMethod(TimeStampedModel):
 class SiteSettings(TimeStampedModel):
     """Site-wide settings"""
     site_name = models.CharField(_('site name'), max_length=100, default='Priyanka Superbazaar')
-    site_logo = models.ImageField(_('site logo'), upload_to='site/', blank=True)
-    site_favicon = models.ImageField(_('favicon'), upload_to='site/', blank=True)
+    site_logo = CloudinaryField(_('site logo'), blank=True, null=True)
+    site_favicon = CloudinaryField(_('favicon'), blank=True, null=True)
     contact_email = models.EmailField(_('contact email'), default='contact@priyankasuperbazaar.com')
     contact_phone = models.CharField(_('contact phone'), max_length=20, default='+91 1234567890')
     address = models.TextField(_('address'), blank=True)
@@ -955,7 +940,7 @@ class Offer(TimeStampedModel):
     """Homepage promotional offers/banners editable from admin."""
     title = models.CharField(_('title'), max_length=200)
     subtitle = models.CharField(_('subtitle'), max_length=255, blank=True)
-    image = models.ImageField(_('image'), upload_to='offers/', blank=True, null=True)
+    image = CloudinaryField(_('image'), blank=True, null=True)
     button_text = models.CharField(_('button text'), max_length=50, blank=True, default='Shop Now')
     button_url = models.CharField(_('button URL'), max_length=255, blank=True, help_text=_('Relative URL such as /products/ or full URL'))
     is_active = models.BooleanField(_('is active'), default=True)
@@ -964,7 +949,7 @@ class Offer(TimeStampedModel):
     class Meta:
         verbose_name = _('offer')
         verbose_name_plural = _('offers')
-        ordering = ('display_order', '-created_at')
+        ordering = ('display_order', '-created')
 
     def __str__(self):
         return self.title
@@ -1011,11 +996,7 @@ class DeliveryBoy(TimeStampedModel):
         blank=True,
         help_text=_('e.g., Bike, Scooter, Car')
     )
-    id_proof = models.ImageField(
-        _('ID proof'),
-        upload_to='delivery_boy/id_proofs/',
-        help_text=_('Upload a scanned copy of ID proof (Aadhar, Driving License, etc.)')
-    )
+    id_proof = CloudinaryField(_('ID proof'))
     aadhar_number = models.CharField(
         _('Aadhar number'),
         max_length=12,
@@ -1032,7 +1013,7 @@ class DeliveryBoy(TimeStampedModel):
     class Meta:
         verbose_name = _('delivery boy')
         verbose_name_plural = _('delivery boys')
-        ordering = ('-created_at',)
+        ordering = ('-created',)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.phone})"

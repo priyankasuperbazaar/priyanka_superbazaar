@@ -3,7 +3,7 @@ from .models import Category, Cart, SiteSettings, Wishlist
 
 def catalog(request):
     """Provide categories list and cart item count to all templates."""
-    categories = Category.objects.filter(is_active=True)
+    categories = Category.objects.all().order_by('name')
     site_settings = SiteSettings.load()
 
     cart_items_count = 0
