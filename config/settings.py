@@ -12,7 +12,7 @@ load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 
-DEBUG = True
+DEBUG = str(os.getenv('DEBUG', 'False')).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
 
 ALLOWED_HOSTS = [
     'priyanka-superbazaar.onrender.com',
@@ -110,8 +110,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-#MEDIA_URL = '/media/'
-#MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
 
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 if not CLOUDINARY_URL:
@@ -139,9 +138,7 @@ else:
     cloudinary.config(secure=True)
 
 CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
-    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+    'CLOUDINARY_URL': CLOUDINARY_URL,
 }
 STORAGES = {
     'default': {
@@ -163,7 +160,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-DEBUG = True
 if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 

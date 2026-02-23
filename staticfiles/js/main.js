@@ -106,3 +106,42 @@
         }
     });
 })();
+
+// Navbar search placeholder suggestions
+(function () {
+  function pickRandom(arr) {
+    if (!arr || !arr.length) return '';
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  document.addEventListener('DOMContentLoaded', async function () {
+    const input = document.getElementById('navbarSearchInput');
+    if (!input) return;
+
+    const url = input.getAttribute('data-suggestions-url');
+    if (!url) return;
+
+    let suggestions = [];
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      suggestions = Array.isArray(data.suggestions) ? data.suggestions.filter(Boolean) : [];
+    } catch (e) {
+      return;
+    }
+
+    if (!suggestions.length) return;
+
+    const basePlaceholder = input.getAttribute('placeholder') || 'Search products...';
+    let current = pickRandom(suggestions);
+    input.setAttribute('placeholder', `${basePlaceholder} e.g. ${current}`);
+
+    window.setInterval(function () {
+      if (document.activeElement === input) return;
+      if (input.value && input.value.trim().length) return;
+      current = pickRandom(suggestions);
+      input.setAttribute('placeholder', `${basePlaceholder} e.g. ${current}`);
+    }, 2500);
+  });
+})();
