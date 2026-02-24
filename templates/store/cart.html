@@ -43,7 +43,11 @@
                                     {% if item.variant %}
                                         <input type="hidden" name="variant_id" value="{{ item.variant.id }}">
                                     {% endif %}
-                                    <input type="number" name="quantity" min="1" value="{{ item.quantity }}" class="form-control form-control-sm text-center" style="width: 70px;">
+                                    <div class="input-group input-group-sm" style="width: 130px;">
+                                        <button class="btn btn-outline-secondary cart-qty-minus" type="button">-</button>
+                                        <input type="text" name="quantity" value="{{ item.quantity }}" class="form-control text-center cart-qty-input" inputmode="numeric" pattern="[0-9]*" aria-label="Quantity">
+                                        <button class="btn btn-outline-secondary cart-qty-plus" type="button">+</button>
+                                    </div>
                                     <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Update</button>
                                 </form>
                             </td>
@@ -73,4 +77,42 @@
         <a href="{% url 'store:product-list' %}" class="btn btn-primary">Start Shopping</a>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function clampQty(val) {
+        const n = parseInt(val, 10);
+        if (Number.isNaN(n) || n < 1) return 1;
+        return n;
+    }
+
+    document.querySelectorAll('form').forEach(function(form) {
+        const input = form.querySelector('.cart-qty-input');
+        if (!input) return;
+
+        const minus = form.querySelector('.cart-qty-minus');
+        const plus = form.querySelector('.cart-qty-plus');
+
+        function sync() {
+            input.value = clampQty(input.value);
+        }
+
+        if (minus) {
+            minus.addEventListener('click', function() {
+                input.value = clampQty(input.value) - 1;
+                sync();
+            });
+        }
+        if (plus) {
+            plus.addEventListener('click', function() {
+                input.value = clampQty(input.value) + 1;
+                sync();
+            });
+        }
+        input.addEventListener('change', sync);
+        input.addEventListener('blur', sync);
+        sync();
+    });
+});
+</script>
 {% endblock %}

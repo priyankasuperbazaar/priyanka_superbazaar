@@ -567,6 +567,37 @@ def cart_add(request, product_id):
     return redirect("store:cart_detail")
 
 
+def buy_now(request, product_id):
+    """Add a product to the cart and redirect to checkout."""
+    product = get_object_or_404(Product, id=product_id, available=True)
+    cart = _get_cart(request)
+
+    variant = None
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant_id')
+        if variant_id:
+            try:
+                variant = product.variants.get(id=variant_id, is_active=True)
+            except Exception:
+                variant = None
+
+    quantity = 1
+    if request.method == "POST":
+        try:
+            quantity = int(request.POST.get("quantity", 1))
+        except (TypeError, ValueError):
+            quantity = 1
+
+    item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=variant)
+    if created:
+        item.quantity = max(quantity, 1)
+    else:
+        item.quantity += max(quantity, 1)
+    item.save()
+
+    return redirect("store:checkout")
+
+
 def cart_detail(request):
     """Display cart contents."""
     cart = _get_cart(request)
