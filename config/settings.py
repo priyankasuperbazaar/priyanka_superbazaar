@@ -15,6 +15,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 DEBUG = str(os.getenv('DEBUG', 'False')).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
 
 ALLOWED_HOSTS = [
+    'priyankasuperbazaar.com',
     'priyanka-superbazaar.onrender.com',
     'localhost',
     '127.0.0.1',
