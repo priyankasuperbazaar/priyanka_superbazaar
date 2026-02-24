@@ -8,7 +8,9 @@ import cloudinary.api
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / '.env')
+_is_render = bool(os.getenv('RENDER')) or bool(os.getenv('RENDER_SERVICE_ID'))
+if not _is_render:
+    load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 
