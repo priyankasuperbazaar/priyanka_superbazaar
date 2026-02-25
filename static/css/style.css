@@ -33,6 +33,37 @@ body {
     .navbar-brand .logo-text {
         font-size: 0.9rem;
     }
+
+    .navbar.navbar-expand-lg {
+        flex-wrap: wrap;
+    }
+
+    .navbar.navbar-expand-lg > .container-fluid {
+        flex-wrap: wrap;
+        row-gap: 0.6rem;
+    }
+
+    .navbar.navbar-expand-lg .navbar-brand {
+        order: 1;
+        margin-right: auto;
+    }
+
+    .navbar.navbar-expand-lg .navbar-toggler {
+        order: 2;
+        margin-left: 0.5rem;
+    }
+
+    .navbar.navbar-expand-lg .navbar-search {
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .navbar.navbar-expand-lg .navbar-search .input-group {
+        width: 100%;
+    }
 }
 
 .navbar-nav .nav-link {
