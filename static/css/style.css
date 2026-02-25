@@ -216,11 +216,11 @@ body {
 
     .navbar-search #navbarSearchInput {
         min-width: 0;
-        width: 100%;
+        width: auto;
     }
 
     .navbar-search {
-        width: 100%;
+        width: auto;
     }
 
     .navbar-search .input-group {
