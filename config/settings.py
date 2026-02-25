@@ -92,11 +92,6 @@ import dj_database_url
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL and DEBUG:
-    _db_url_lower = DATABASE_URL.lower().strip()
-    if 'localhost' in _db_url_lower or '127.0.0.1' in _db_url_lower:
-        DATABASE_URL = None
-
 if not DATABASE_URL:
     DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
@@ -107,7 +102,6 @@ DATABASES = {
         ssl_require=bool(DATABASE_URL) and not DATABASE_URL.startswith("sqlite"),
     )
 }
-
 
 AUTHENTICATION_BACKENDS = [
     'store.utils.EmailOrUsernameModelBackend',
@@ -120,8 +114,6 @@ SITE_ID = 1
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-#MEDIA_URL = '/media/'
 
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 if not CLOUDINARY_URL:
@@ -151,14 +143,27 @@ else:
 CLOUDINARY_STORAGE = {
     'CLOUDINARY_URL': CLOUDINARY_URL,
 }
-STORAGES = {
-    'default': {
-        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
-    },
-}
+
+if CLOUDINARY_URL:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        },
+    }
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        },
+    }
 
 LOGIN_REDIRECT_URL = '/account/profile/'
 
