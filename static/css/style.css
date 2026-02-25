@@ -145,8 +145,13 @@ body {
     }
 
     .navbar.navbar-expand-lg .navbar-mobile-actions .dropdown-menu {
-        right: 0;
-        left: auto;
+        position: absolute !important;
+        top: calc(100% + 0.35rem) !important;
+        right: 0 !important;
+        left: auto !important;
+        transform: none !important;
+        margin-top: 0 !important;
+        z-index: 2000;
     }
 }
 
