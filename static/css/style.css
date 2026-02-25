@@ -124,6 +124,19 @@ body {
     .navbar.navbar-expand-lg .offcanvas .dropdown-menu {
         border-radius: 12px;
     }
+
+    .navbar.navbar-expand-lg .mobile-nav-dropdown-menu {
+        width: min(86vw, 320px);
+        border-radius: 14px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .navbar.navbar-expand-lg .mobile-nav-dropdown-menu .dropdown-item {
+        border-radius: 10px;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+    }
 }
 
 .navbar-nav .nav-link {
