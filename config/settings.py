@@ -153,7 +153,7 @@ if CLOUDINARY_URL:
             'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
         },
     }
-else:
+#else:
     #MEDIA_URL = '/media/'
     #MEDIA_ROOT = BASE_DIR / 'media'
     STORAGES = {
