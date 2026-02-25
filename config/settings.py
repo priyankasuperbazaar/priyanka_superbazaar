@@ -144,6 +144,11 @@ CLOUDINARY_STORAGE = {
     'CLOUDINARY_URL': CLOUDINARY_URL,
 }
 
+# -------------------------------
+# Cloudinary Storage Setup
+# -------------------------------
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
+
 if CLOUDINARY_URL:
     STORAGES = {
         'default': {
@@ -153,9 +158,10 @@ if CLOUDINARY_URL:
             'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
         },
     }
-#else:
-    #MEDIA_URL = '/media/'
-    #MEDIA_ROOT = BASE_DIR / 'media'
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
     STORAGES = {
         'default': {
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
