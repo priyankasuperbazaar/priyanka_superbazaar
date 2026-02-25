@@ -153,7 +153,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid px-3 px-lg-4">
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'store:home' %}">
+            <a class="navbar-brand d-none d-lg-flex align-items-center" href="{% url 'store:home' %}">
                 <img src="{% static 'images/logo.jpg' %}" alt="Priyanka Superbazaar" class="me-2" style="height: 44px; width: 44px; border-radius: 8px; object-fit: cover;">
                 <span class="d-none d-lg-inline fw-semibold">Priyanka Superbazaar</span>
             </a>
@@ -173,15 +173,6 @@
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                         {{ cart_items_count|default:0 }}
                     </span>
-                </a>
-
-                <a class="btn btn-outline-light position-relative" href="{% url 'store:wishlist' %}" aria-label="Wishlist">
-                    <i class="fas fa-heart"></i>
-                    {% if user.is_authenticated %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            {{ wishlist_items_count|default:0 }}
-                        </span>
-                    {% endif %}
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarOffcanvas" aria-controls="navbarOffcanvas" aria-label="Menu">
