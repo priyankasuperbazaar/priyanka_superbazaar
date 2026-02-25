@@ -90,16 +90,26 @@ TEMPLATES = [
 
 import dj_database_url
 
+# -----------------------------------------
+# DATABASE CONFIG (Render-safe version)
+# -----------------------------------------
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+# If running on Render, NEVER fall back to sqlite
+if os.getenv("RENDER"):
+    if not DATABASE_URL:
+        raise Exception("DATABASE_URL is missing in Render environment!")
+else:
+    # Local machine only (developer fallback)
+    if not DATABASE_URL:
+        DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
 DATABASES = {
     "default": dj_database_url.config(
         default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=bool(DATABASE_URL) and not DATABASE_URL.startswith("sqlite"),
+        ssl_require=DATABASE_URL.startswith("postgresql"),
     )
 }
 
