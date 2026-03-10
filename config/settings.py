@@ -12,6 +12,23 @@ _is_render = bool(os.getenv('RENDER')) or bool(os.getenv('RENDER_SERVICE_ID'))
 if not _is_render:
     load_dotenv(BASE_DIR / '.env')
 
+# ---------------------------------------------------------------------
+# Compatibility patch: Django 4.2 + Python 3.14 template context copying
+# ---------------------------------------------------------------------
+try:
+    from django.template.context import BaseContext
+
+    def _basecontext_copy(self):
+        duplicate = self.__class__.__new__(self.__class__)
+        if hasattr(self, "__dict__"):
+            duplicate.__dict__ = self.__dict__.copy()
+        duplicate.dicts = self.dicts[:]
+        return duplicate
+
+    BaseContext.__copy__ = _basecontext_copy  # type: ignore[attr-defined]
+except Exception:
+    pass
+
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-temp-key')
 
 DEBUG = str(os.getenv('DEBUG', 'False')).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
@@ -45,6 +62,12 @@ INSTALLED_APPS = [
 
     'cloudinary',
     'cloudinary_storage',
+    
+    # API and Real-time
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'channels',
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -57,6 +80,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -191,6 +215,51 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS settings for Flutter app
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "https://priyanka-superbazaar.onrender.com",
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}
+
+# Channels configuration for real-time features
+ASGI_APPLICATION = 'config.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379')],
+        },
+    },
+}
 
 if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']

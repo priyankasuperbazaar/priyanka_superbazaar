@@ -160,6 +160,59 @@ class OrderAdmin(admin.ModelAdmin):
     date_hierarchy = 'created'
     inlines = [OrderItemInline]
 
+    def changelist_view(self, request, extra_context=None):
+        """
+        Add high-level sales statistics for the custom Order changelist template.
+        """
+        response = super().changelist_view(request, extra_context=extra_context)
+
+        try:
+            cl = response.context_data.get("cl")
+        except Exception:
+            return response
+
+        queryset = cl.queryset if hasattr(cl, "queryset") else self.get_queryset(request)
+
+        # Consider only completed/paid orders for revenue numbers
+        completed_qs = queryset.filter(
+            Q(status__in=["completed", "delivered", "shipped"]) | Q(payment_status__in=["paid", "completed"])
+        )
+
+        agg = completed_qs.aggregate(
+            total_revenue=Sum("total"),
+            avg_order_value=Avg("total"),
+        )
+
+        total_revenue = agg.get("total_revenue") or 0
+        avg_order_value = agg.get("avg_order_value") or 0
+
+        sales_by_status = (
+            completed_qs.values("status")
+            .annotate(count=Count("id"), total=Sum("total"))
+            .order_by("status")
+        )
+
+        top_products = (
+            OrderItem.objects.filter(order__in=completed_qs)
+            .values("product__name")
+            .annotate(
+                quantity=Sum("quantity"),
+                total=Sum("subtotal"),
+            )
+            .order_by("-total")[:10]
+        )
+
+        response.context_data.update(
+            {
+                "total_revenue": total_revenue,
+                "avg_order_value": avg_order_value,
+                "sales_by_status": sales_by_status,
+                "top_products": top_products,
+            }
+        )
+
+        return response
+
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):

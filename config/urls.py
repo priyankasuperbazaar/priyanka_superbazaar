@@ -19,10 +19,27 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("", include("store.urls")),
+    path("api/", include("store.api_urls")),
     path("create-render-admin/", create_render_admin),
 ]
 
 # Serve media files in development
 
-if settings.DEBUG and hasattr(settings, 'MEDIA_URL') and hasattr(settings, 'MEDIA_ROOT'):
+def _should_serve_media():
+    """
+    Only serve media via Django in DEBUG when MEDIA_URL/MEDIA_ROOT are explicitly
+    configured. This prevents the default MEDIA_URL='/' from shadowing all routes.
+    """
+    media_url = getattr(settings, "MEDIA_URL", "") or ""
+    media_root = getattr(settings, "MEDIA_ROOT", "") or ""
+
+    # Django default MEDIA_URL is '/', which would match everything.
+    if not media_root:
+        return False
+    if not media_url.startswith("/media/"):
+        return False
+    return True
+
+
+if settings.DEBUG and _should_serve_media():
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
