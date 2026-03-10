@@ -9,6 +9,7 @@
                     url('https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=1600');
         background-size: cover;
         background-position: center;
+        background-repeat: no-repeat;
         color: white;
         padding: 100px 0;
         margin-bottom: 4rem;
@@ -140,8 +141,10 @@
     /* MOBILE RESPONSIVENESS */
     @media (max-width: 768px) {
         .hero-section {
-            padding: 60px 20px;
+            padding: 40px 16px 56px;
             text-align: center;
+            background-size: contain;
+            background-position: top center;
         }
         .hero-content h1 {
             font-size: 2rem;
