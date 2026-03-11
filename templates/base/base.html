@@ -27,6 +27,8 @@
             position: fixed;
             inset: 0;
             z-index: 20000;
+            height: 100vh;
+            height: 100dvh;
             background: radial-gradient(1200px 600px at 20% 10%, rgba(255, 255, 255, 0.16), transparent 60%),
                         radial-gradient(900px 500px at 80% 30%, rgba(255, 255, 255, 0.12), transparent 60%),
                         linear-gradient(135deg, #0d6efd 0%, #0a58ca 45%, #6610f2 100%);
@@ -142,11 +144,14 @@
             #appSplash .splash-card {
                 width: min(420px, 92vw);
                 padding: 20px;
+                max-height: calc(100dvh - 32px);
+                overflow: hidden;
             }
 
             #appSplash img {
                 max-width: 100%;
                 height: auto;
+                display: block;
             }
 
             #appSplash .splash-logo {
@@ -156,6 +161,25 @@
 
             #appSplash .splash-title {
                 font-size: 1.05rem;
+            }
+
+            #appSplash::before,
+            #appSplash::after {
+                animation: none;
+            }
+
+            #appSplash .splash-logo,
+            #appSplash .loader span {
+                animation: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #appSplash::before,
+            #appSplash::after,
+            #appSplash .splash-logo,
+            #appSplash .loader span {
+                animation: none !important;
             }
         }
     </style>
@@ -407,14 +431,59 @@
                 var progress = document.getElementById('appSplashProgress');
                 if (!splash) return;
 
+                function storageGet(k) {
+                    try {
+                        return sessionStorage.getItem(k);
+                    } catch (e) {
+                        try {
+                            return localStorage.getItem(k);
+                        } catch (e2) {
+                            return null;
+                        }
+                    }
+                }
+
+                function storageSet(k, v) {
+                    try {
+                        sessionStorage.setItem(k, v);
+                        return;
+                    } catch (e) {
+                        try {
+                            localStorage.setItem(k, v);
+                        } catch (e2) {}
+                    }
+                }
+
+                function hideSplash() {
+                    try {
+                        splash.style.display = 'none';
+                        document.body.classList.remove('splash-lock');
+                        storageSet(key, '1');
+                    } catch (e) {}
+                }
+
                 var hasShown = false;
                 try {
-                    hasShown = sessionStorage.getItem(key) === '1';
+                    hasShown = storageGet(key) === '1';
                 } catch (e) {
                     hasShown = false;
                 }
 
                 if (hasShown) return;
+
+                var isSmallScreen = false;
+                try {
+                    isSmallScreen = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+                } catch (e) {
+                    isSmallScreen = false;
+                }
+
+                if (isSmallScreen) {
+                    storageSet(key, '1');
+                    splash.style.display = 'none';
+                    document.body.classList.remove('splash-lock');
+                    return;
+                }
 
                 splash.style.display = 'flex';
                 document.body.classList.add('splash-lock');
@@ -423,19 +492,28 @@
                 var start = Date.now();
                 if (progress) progress.style.width = '0%';
 
+                var hardTimeout = setTimeout(function () {
+                    hideSplash();
+                }, durationMs + 2000);
+
                 var timer = setInterval(function () {
                     var elapsedMs = Date.now() - start;
                     var pct = Math.min(100, Math.round((elapsedMs / durationMs) * 100));
                     if (progress) progress.style.width = pct + '%';
                     if (elapsedMs >= durationMs) {
                         clearInterval(timer);
-                        splash.style.display = 'none';
-                        document.body.classList.remove('splash-lock');
-                        try {
-                            sessionStorage.setItem(key, '1');
-                        } catch (e) {}
+                        clearTimeout(hardTimeout);
+                        hideSplash();
                     }
                 }, 120);
+
+                window.addEventListener('pageshow', function () {
+                    if (splash.style.display === 'flex') {
+                        setTimeout(function () {
+                            hideSplash();
+                        }, 0);
+                    }
+                });
             } catch (e) {}
         })();
     </script>
