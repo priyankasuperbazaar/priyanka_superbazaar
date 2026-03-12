@@ -5,7 +5,7 @@
 <style>
     /* HERO SECTION */
     .hero-section {
-        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+        background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
                     url('https://images.pexels.com/photos/264636/pexels-photo-264636.jpeg?auto=compress&cs=tinysrgb&w=1600');
         background-size: cover;
         background-position: center;
@@ -13,6 +13,7 @@
         color: white;
         padding: 100px 0;
         margin-bottom: 4rem;
+        min-height: 320px;
     }
     .hero-content {
         max-width: 600px;
@@ -108,14 +109,16 @@
     .feature-box {
         text-align: center;
         padding: 2rem 1rem;
-        border-radius: 10px;
-        background: #f8f9fa;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(13,110,253,0.04), rgba(13,202,240,0.04));
         height: 100%;
-        transition: all 0.3s;
+        border: 1px solid rgba(0,0,0,0.03);
+        transition: all 0.25s ease;
     }
     .feature-box:hover {
         background: white;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        transform: translateY(-3px);
     }
 
     /* TESTIMONIAL */
@@ -141,10 +144,11 @@
     /* MOBILE RESPONSIVENESS */
     @media (max-width: 768px) {
         .hero-section {
-            padding: 40px 16px 56px;
+            padding: 40px 16px 48px;
             text-align: center;
-            background-size: contain;
-            background-position: top center;
+            /* On phones, use a clean gradient without full-screen photo
+               so logo/banner content below stays visible. */
+            background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
         }
         .hero-content h1 {
             font-size: 2rem;
