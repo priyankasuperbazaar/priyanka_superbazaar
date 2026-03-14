@@ -359,6 +359,9 @@ def product_list(request, category_slug=None):
 
     query = request.GET.get("q", "").strip()
 
+    if not category_slug:
+        category_slug = request.GET.get("category", "").strip() or None
+
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
         products = products.filter(category=category)

@@ -1,4 +1,5 @@
 from rest_framework import serializers, viewsets, status
+from rest_framework import filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
@@ -261,6 +262,27 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(available=True).select_related('category').prefetch_related('images', 'variants')
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'slug', 'description', 'category__name']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        category = self.request.query_params.get('category')
+        if category:
+            try:
+                qs = qs.filter(category_id=int(category))
+            except (TypeError, ValueError):
+                qs = qs.filter(category__slug=category)
+
+        featured = self.request.query_params.get('featured')
+        if featured is not None:
+            if str(featured).lower() in {'1', 'true', 'yes', 'y'}:
+                qs = qs.filter(featured=True)
+            elif str(featured).lower() in {'0', 'false', 'no', 'n'}:
+                qs = qs.filter(featured=False)
+
+        return qs
 
     @action(detail=True, methods=['get'])
     def reviews(self, request, pk=None):

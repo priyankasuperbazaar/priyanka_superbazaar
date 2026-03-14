@@ -8,9 +8,9 @@
     <div class="row">
         <div class="col-md-5">
             {% if product.image %}
-                <img src="{{ product.image.url }}" class="img-fluid mb-3" alt="{{ product.name }}">
+                <img src="{{ product.image.url }}" class="img-fluid mb-3" style="width: 100%; max-height: 420px; object-fit: contain;" alt="{{ product.name }}">
             {% else %}
-                <img src="{% static 'images/placeholder.png' %}" class="img-fluid mb-3" alt="{{ product.name }}">
+                <img src="{% static 'images/placeholder.png' %}" class="img-fluid mb-3" style="width: 100%; max-height: 420px; object-fit: contain;" alt="{{ product.name }}">
             {% endif %}
 
             {% if images %}
@@ -36,7 +36,7 @@
                         {% for v in variants %}
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="variant_id" id="variant_{{ v.id }}" value="{{ v.id }}" data-price="{{ v.price }}" {% if forloop.first %}checked{% endif %}>
-                                <label class="form-check-label" for="variant_{{ v.id }}">
+                                <label class="form-check-label small" for="variant_{{ v.id }}">
                                     {{ v.value|floatformat:-2 }} {{ product.get_unit_type_display }} - ₹{{ v.price }}
                                 </label>
                             </div>
