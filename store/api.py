@@ -1,8 +1,8 @@
-from rest_framework import serializers, viewsets, status
-from rest_framework import filters
+from rest_framework import serializers, viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from django.contrib.auth import authenticate, login
@@ -410,6 +410,7 @@ class AddressViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'order_number'
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).select_related(
@@ -461,7 +462,73 @@ class DeliveryBoyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
 
-# Custom API Views
+class DeliveryOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'order_number'
+
+    def get_queryset(self):
+        if not hasattr(self.request.user, 'delivery_profile'):
+            raise PermissionDenied('Delivery access required')
+        delivery_boy = self.request.user.delivery_profile
+        return Order.objects.filter(delivery_boy=delivery_boy).select_related(
+            'billing_address', 'shipping_address'
+        ).prefetch_related('items')
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        qs = self.get_queryset().filter(status__in=[Order.STATUS_PENDING, Order.STATUS_PROCESSING, Order.STATUS_SHIPPED])
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        qs = self.get_queryset().filter(status=Order.STATUS_DELIVERED).order_by('-modified')
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        order = self.get_object()
+        new_status = str(request.data.get('status', '')).strip()
+
+        allowed = {
+            Order.STATUS_PROCESSING,
+            Order.STATUS_SHIPPED,
+            Order.STATUS_DELIVERED,
+        }
+        if new_status not in allowed:
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = new_status
+        order.save(update_fields=['status', 'modified'])
+        return Response({'status': 'ok', 'order_number': order.order_number, 'new_status': order.status})
+
+    @action(detail=True, methods=['post'])
+    def mark_paid(self, request, pk=None):
+        order = self.get_object()
+        method = str(request.data.get('method', '')).strip().lower()
+
+        if method == 'cod':
+            order.payment_method = Order.PAYMENT_METHOD_COD
+        elif method in {'online', 'stripe'}:
+            order.payment_method = Order.PAYMENT_METHOD_STRIPE
+        else:
+            return Response({'error': 'Invalid payment method'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.mark_as_paid()
+        return Response({'status': 'ok', 'order_number': order.order_number, 'payment_status': order.payment_status})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def delivery_me(request):
+    if not hasattr(request.user, 'delivery_profile'):
+        return Response({'error': 'Delivery access required'}, status=status.HTTP_403_FORBIDDEN)
+    serializer = DeliveryBoySerializer(request.user.delivery_profile)
+    return Response(serializer.data)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -669,19 +736,37 @@ def checkout_api(request):
         with transaction.atomic():
             order = Order.objects.create(
                 user=request.user,
-                status=Order.STATUS_PENDING,
-                payment_status=Order.PAYMENT_STATUS_PENDING,
-                payment_method=Order.PAYMENT_METHOD_COD,
+                billing_address=billing_address,
+                shipping_address=shipping_address,
+                promo_code=promo_code,
+                customer_note=request.data.get('customer_note', ''),
+                shipping_method=shipping_method,
                 subtotal=subtotal,
                 tax_amount=tax_amount,
                 shipping_cost=shipping_cost,
                 discount_amount=discount_amount,
-                promo_code=promo if promo_code else None,
-                billing_address=billing_address,
-                shipping_address=shipping_address,
-                customer_note=request.data.get('customer_note', ''),
-                ip_address=request.META.get("REMOTE_ADDR"),
+                total=total,
             )
+
+            # Auto-assign an active delivery boy (best-effort)
+            try:
+                if order.delivery_boy_id is None:
+                    candidates = DeliveryBoy.objects.filter(is_active=True)
+                    if candidates.exists():
+                        chosen = None
+                        min_active = None
+                        for dboy in candidates:
+                            active_count = dboy.delivery_orders.filter(
+                                status__in=[Order.STATUS_PENDING, Order.STATUS_PROCESSING, Order.STATUS_SHIPPED]
+                            ).count()
+                            if min_active is None or active_count < min_active:
+                                chosen = dboy
+                                min_active = active_count
+                        if chosen is not None:
+                            order.delivery_boy = chosen
+                            order.save(update_fields=['delivery_boy', 'modified'])
+            except Exception:
+                pass
 
             # Create payment record
             Payment.objects.create(

@@ -54,8 +54,36 @@ def _get_cart(request):
     if cart_id:
         cart = Cart.objects.filter(id=cart_id).first()
 
+    # If user is authenticated, prefer a user-bound cart so web + app share it.
+    if request.user.is_authenticated:
+        user_cart, _ = Cart.objects.get_or_create(user=request.user)
+
+        # Merge any existing session cart into the user cart
+        if cart and cart.id != user_cart.id:
+            try:
+                for item in cart.items.all():
+                    target_item, created = CartItem.objects.get_or_create(
+                        cart=user_cart,
+                        product=item.product,
+                        variant=item.variant,
+                    )
+                    if created:
+                        target_item.quantity = item.quantity
+                    else:
+                        target_item.quantity += item.quantity
+                    target_item.save()
+                cart.delete()
+            except Exception:
+                pass
+
+        request.session['cart_id'] = user_cart.id
+        return user_cart
+
     if not cart:
-        cart = Cart.objects.create()
+        if request.user.is_authenticated:
+            cart, _ = Cart.objects.get_or_create(user=request.user)
+        else:
+            cart = Cart.objects.create(session_key=request.session.session_key or None)
         request.session['cart_id'] = cart.id
 
     return cart

@@ -16,10 +16,12 @@ router.register(r'shipping-methods', api.ShippingMethodViewSet)
 router.register(r'site-settings', api.SiteSettingsViewSet)
 router.register(r'offers', api.OfferViewSet)
 router.register(r'delivery-boys', api.DeliveryBoyViewSet)
+router.register(r'delivery-orders', api.DeliveryOrderViewSet, basename='delivery-orders')
 
 # API URL patterns
 api_urlpatterns = [
     path('', include(router.urls)),
+    path('delivery/me/', api.delivery_me, name='api_delivery_me'),
     path('auth/token/', token_views.obtain_auth_token, name='api_token_auth'),
     path('auth/register/', api.register, name='api_register'),
     path('auth/login/', api.login_view, name='api_login'),
