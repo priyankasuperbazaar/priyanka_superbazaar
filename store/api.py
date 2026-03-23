@@ -201,6 +201,8 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class AddressSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
         model = Address
         fields = '__all__'
@@ -703,6 +705,8 @@ def checkout_api(request):
     shipping_method_id = request.data.get('shipping_method_id')
     promo_code = request.data.get('promo_code')
 
+    promo = None
+
     try:
         shipping_address = Address.objects.get(id=shipping_address_id, user=request.user)
         billing_address = Address.objects.get(id=billing_address_id, user=request.user)
@@ -738,9 +742,8 @@ def checkout_api(request):
                 user=request.user,
                 billing_address=billing_address,
                 shipping_address=shipping_address,
-                promo_code=promo_code,
+                promo_code=promo,
                 customer_note=request.data.get('customer_note', ''),
-                shipping_method=shipping_method,
                 subtotal=subtotal,
                 tax_amount=tax_amount,
                 shipping_cost=shipping_cost,
