@@ -522,8 +522,26 @@ class DeliveryOrderViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 return Response({'error': 'Invalid payment method'}, status=status.HTTP_400_BAD_REQUEST)
 
-            order.mark_as_paid()
-            return Response({'status': 'ok', 'order_number': order.order_number, 'payment_status': order.payment_status})
+            # Mark order as paid
+            order.payment_status = Order.PAYMENT_STATUS_PAID
+            order.save(update_fields=['payment_status', 'payment_method', 'modified'])
+
+            # Best-effort: keep Payment model (if exists) in sync
+            try:
+                payment = getattr(order, 'payment', None)
+                if payment is not None:
+                    payment.payment_method = order.payment_method
+                    payment.payment_status = Payment.PAYMENT_STATUS_COMPLETED
+                    payment.save(update_fields=['payment_method', 'payment_status', 'modified'])
+            except Exception:
+                pass
+
+            return Response({
+                'status': 'ok',
+                'order_number': order.order_number,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method,
+            })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
