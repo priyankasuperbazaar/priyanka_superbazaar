@@ -491,35 +491,41 @@ class DeliveryOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
-        order = self.get_object()
-        new_status = str(request.data.get('status', '')).strip()
+        try:
+            order = self.get_object()
+            new_status = str(request.data.get('status', '')).strip()
 
-        allowed = {
-            Order.STATUS_PROCESSING,
-            Order.STATUS_SHIPPED,
-            Order.STATUS_DELIVERED,
-        }
-        if new_status not in allowed:
-            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            allowed = {
+                Order.STATUS_PROCESSING,
+                Order.STATUS_SHIPPED,
+                Order.STATUS_DELIVERED,
+            }
+            if new_status not in allowed:
+                return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
-        order.status = new_status
-        order.save(update_fields=['status', 'modified'])
-        return Response({'status': 'ok', 'order_number': order.order_number, 'new_status': order.status})
+            order.status = new_status
+            order.save(update_fields=['status', 'modified'])
+            return Response({'status': 'ok', 'order_number': order.order_number, 'new_status': order.status})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def mark_paid(self, request, pk=None):
-        order = self.get_object()
-        method = str(request.data.get('method', '')).strip().lower()
+        try:
+            order = self.get_object()
+            method = str(request.data.get('method', '')).strip().lower()
 
-        if method == 'cod':
-            order.payment_method = Order.PAYMENT_METHOD_COD
-        elif method in {'online', 'stripe'}:
-            order.payment_method = Order.PAYMENT_METHOD_STRIPE
-        else:
-            return Response({'error': 'Invalid payment method'}, status=status.HTTP_400_BAD_REQUEST)
+            if method == 'cod':
+                order.payment_method = Order.PAYMENT_METHOD_COD
+            elif method in {'online', 'stripe'}:
+                order.payment_method = Order.PAYMENT_METHOD_STRIPE
+            else:
+                return Response({'error': 'Invalid payment method'}, status=status.HTTP_400_BAD_REQUEST)
 
-        order.mark_as_paid()
-        return Response({'status': 'ok', 'order_number': order.order_number, 'payment_status': order.payment_status})
+            order.mark_as_paid()
+            return Response({'status': 'ok', 'order_number': order.order_number, 'payment_status': order.payment_status})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
