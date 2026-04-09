@@ -120,22 +120,44 @@ import dj_database_url
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Local dev convenience:
+# If you have DATABASE_URL set globally (e.g. Render Postgres), Django will try to use it.
+# Default to sqlite locally unless explicitly opting into remote DB.
+USE_REMOTE_DB = str(os.getenv('USE_REMOTE_DB', 'False')).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+FORCE_SQLITE = str(os.getenv('FORCE_SQLITE', 'False')).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+
 # If running on Render, NEVER fall back to sqlite
 if os.getenv("RENDER"):
     if not DATABASE_URL:
         raise Exception("DATABASE_URL is missing in Render environment!")
-else:
+
+_db_url = DATABASE_URL
+if not os.getenv("RENDER"):
     # Local machine only (developer fallback)
-    if not DATABASE_URL:
-        DATABASE_URL = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+    if FORCE_SQLITE or (not _db_url) or (not USE_REMOTE_DB):
+        _db_url = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        ssl_require=DATABASE_URL.startswith("postgresql"),
+    "default": dj_database_url.parse(
+        _db_url,
+        conn_max_age=60,
+        ssl_require=str(_db_url).startswith("postgresql"),
     )
 }
+
+# Ensure Postgres always uses sslmode=require (especially on Render managed Postgres)
+try:
+    if DATABASES['default']['ENGINE'].endswith('postgresql'):
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default'].setdefault('CONN_HEALTH_CHECKS', True)
+        DATABASES['default']['OPTIONS'].setdefault('sslmode', 'require')
+        DATABASES['default']['OPTIONS'].setdefault('connect_timeout', 10)
+        DATABASES['default']['OPTIONS'].setdefault('keepalives', 1)
+        DATABASES['default']['OPTIONS'].setdefault('keepalives_idle', 30)
+        DATABASES['default']['OPTIONS'].setdefault('keepalives_interval', 10)
+        DATABASES['default']['OPTIONS'].setdefault('keepalives_count', 5)
+except Exception:
+    pass
 
 AUTHENTICATION_BACKENDS = [
     'store.utils.EmailOrUsernameModelBackend',

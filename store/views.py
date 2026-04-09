@@ -15,6 +15,8 @@ from django.utils import timezone
 from datetime import timedelta
 import random
 
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 from django.http import JsonResponse, HttpResponse
 from .models import (
     Product,
@@ -89,6 +91,7 @@ def _get_cart(request):
     return cart
 
 
+@ensure_csrf_cookie
 def custom_login(request):
     """Custom login view with email/username support"""
     google_login_available = False
