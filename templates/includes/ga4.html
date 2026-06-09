@@ -1,0 +1,22 @@
+{% load seo_tags %}
+{# Google Analytics 4 – set GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX in environment #}
+{% ga4_id as measurement_id %}
+{% if measurement_id %}
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ measurement_id }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ measurement_id }}');
+</script>
+{% else %}
+<!--
+  GA4 PLACEHOLDER – To enable Google Analytics 4:
+  1. Create a GA4 property at https://analytics.google.com
+  2. Copy your Measurement ID (format: G-XXXXXXXXXX)
+  3. Set environment variable: GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
+     On Render: Dashboard → Environment → Add GOOGLE_ANALYTICS_ID
+  4. Redeploy the application
+-->
+{% endif %}

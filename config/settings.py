@@ -35,6 +35,7 @@ DEBUG = str(os.getenv('DEBUG', 'False')).strip().lower() in {'1', 'true', 'yes',
 
 ALLOWED_HOSTS = [
     'priyankasuperbazaar.com',
+    'www.priyankasuperbazaar.com',
     'priyanka-superbazaar.onrender.com',
     'localhost',
     '127.0.0.1',
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
 
     'store.apps.StoreConfig',
 
@@ -107,6 +109,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'store.context_processors.catalog',
+                'store.context_processors.seo_defaults',
             ],
         },
     },
@@ -166,6 +169,20 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SITE_ID = 1
+
+# ---------------------------------------------------------------------
+# SEO Configuration
+# ---------------------------------------------------------------------
+SITE_NAME = 'Priyanka Super Bazaar'
+# Full canonical base URL – used by sitemaps, canonical tags, and JSON-LD.
+# Sitemap hostname is derived from this (must not be example.com).
+SITE_DOMAIN = os.getenv('SITE_DOMAIN', 'https://priyankasuperbazaar.com').rstrip('/')
+
+# Google Analytics 4 – set GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX in environment
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+
+# Google Search Console – set GOOGLE_SITE_VERIFICATION to the meta tag content value
+GOOGLE_SITE_VERIFICATION = os.getenv('GOOGLE_SITE_VERIFICATION', '')
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -233,6 +250,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 CSRF_TRUSTED_ORIGINS = [
     "https://priyanka-superbazaar.onrender.com",
+    "https://priyankasuperbazaar.com",
     "https://www.priyankasuperbazaar.com",
 ]
 

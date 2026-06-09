@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Priyanka Superbazaar{% endblock %}</title>
+    {% include "includes/seo_head.html" %}
     
     <!-- Favicon -->
     <link rel="icon" href="{% static 'images/logo.jpg' %}" type="image/jpeg">
     <link rel="shortcut icon" href="{% static 'images/logo.jpg' %}" type="image/jpeg">
-    <meta property="og:image" content="{% static 'images/logo.jpg' %}">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:image" content="{% static 'images/logo.jpg' %}">
+
+    <!-- Google Analytics 4 (enabled when GOOGLE_ANALYTICS_ID is set) -->
+    {% include "includes/ga4.html" %}
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -190,7 +190,7 @@
     <div id="appSplash" aria-hidden="true">
         <div class="splash-card">
             <img src="{% static 'images/logo.png' %}" alt="Priyanka Superbazaar" class="splash-logo" onerror="this.style.display='none';">
-            <h1 class="h4 splash-title">Priyanka Superbazaar</h1>
+            <p class="h4 splash-title mb-0">Priyanka Super Bazaar</p>
             <p class="splash-subtitle">Preparing your shopping experience...</p>
             <div class="loader" aria-label="Loading"><span></span><span></span><span></span></div>
             <div class="progress-wrap" aria-hidden="true">
@@ -206,7 +206,7 @@
                 <span class="fw-semibold">Priyanka Superbazaar</span>
             </a>
             <a class="navbar-brand d-none d-lg-flex align-items-center" href="{% url 'store:home' %}">
-                <img src="{% static 'images/logo.jpg' %}" alt="Priyanka Superbazaar" class="me-2" style="height: 44px; width: 44px; border-radius: 8px; object-fit: cover;">
+                <img src="{% static 'images/logo.jpg' %}" alt="Priyanka Super Bazaar logo" class="me-2" width="44" height="44" style="height: 44px; width: 44px; border-radius: 8px; object-fit: cover;">
                 <span class="d-none d-lg-inline fw-semibold">Priyanka Superbazaar</span>
             </a>
 

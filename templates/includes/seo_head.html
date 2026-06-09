@@ -1,0 +1,40 @@
+{% load static seo_tags %}
+{# SEO Meta Tags – populated via `seo` context dict from store/seo.py #}
+{% with s=seo %}
+<title>{{ s.title|default:"Priyanka Super Bazaar" }}</title>
+<meta name="description" content="{{ s.description }}">
+<meta name="keywords" content="{{ s.keywords }}">
+<meta name="robots" content="{{ s.robots|default:'index, follow' }}">
+<link rel="canonical" href="{{ s.canonical_url }}">
+
+{# Open Graph (Facebook, WhatsApp, LinkedIn) #}
+<meta property="og:site_name" content="Priyanka Super Bazaar">
+<meta property="og:title" content="{{ s.og_title|default:s.title }}">
+<meta property="og:description" content="{{ s.og_description|default:s.description }}">
+<meta property="og:image" content="{{ s.og_image }}">
+<meta property="og:url" content="{{ s.og_url|default:s.canonical_url }}">
+<meta property="og:type" content="{{ s.og_type|default:'website' }}">
+<meta property="og:locale" content="en_IN">
+
+{# Twitter / X Card #}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ s.og_title|default:s.title }}">
+<meta name="twitter:description" content="{{ s.og_description|default:s.description }}">
+<meta name="twitter:image" content="{{ s.og_image }}">
+
+{# Google Search Console verification – set GOOGLE_SITE_VERIFICATION in environment #}
+{% gsc_verification as gsc_code %}
+{% if gsc_code %}
+<meta name="google-site-verification" content="{{ gsc_code }}">
+{% else %}
+{# PLACEHOLDER: Replace YOUR_VERIFICATION_CODE with the code from Google Search Console #}
+{# <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE"> #}
+{% endif %}
+
+{# JSON-LD Structured Data #}
+{% if s.schema_json %}
+{% for schema in s.schema_json %}
+<script type="application/ld+json">{{ schema|schema_json }}</script>
+{% endfor %}
+{% endif %}
+{% endwith %}

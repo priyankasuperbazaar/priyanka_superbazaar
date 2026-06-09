@@ -47,6 +47,13 @@ from .utils import (
     send_order_confirmation_sms, send_registration_confirmation_email,
     send_registration_confirmation_sms
 )
+from .seo import (
+    seo_for_home,
+    seo_for_product_list,
+    seo_for_product,
+    seo_for_static_page,
+    seo_noindex,
+)
 
 
 def _get_cart(request):
@@ -136,7 +143,9 @@ def custom_login(request):
                 form.add_error(None, 'Invalid credentials')
     else:
         form = CustomLoginForm()
-    return render(request, 'store/login.html', {'form': form, 'google_login_available': google_login_available})
+    ctx = {'form': form, 'google_login_available': google_login_available}
+    ctx.update(seo_noindex(request, 'Customer Login'))
+    return render(request, 'store/login.html', ctx)
 
 
 def account_signup(request):
@@ -167,7 +176,9 @@ def account_signup(request):
                 return redirect('store:account_profile')
     else:
         form = CustomRegisterForm()
-    return render(request, 'store/account_signup.html', {'form': form})
+    ctx = {'form': form}
+    ctx.update(seo_noindex(request, 'Create Account'))
+    return render(request, 'store/account_signup.html', ctx)
 
 
 def password_reset_phone(request):
@@ -369,11 +380,13 @@ def home(request):
     featured_products = Product.objects.filter(available=True, featured=True)[:8]
     latest_products = Product.objects.filter(available=True).order_by("-created")[:8]
     offers = Offer.objects.filter(is_active=True)[:3]
+    site_settings = SiteSettings.load()
     context = {
         "featured_products": featured_products,
         "latest_products": latest_products,
         "offers": offers,
     }
+    context.update(seo_for_home(request, site_settings))
     return render(request, "store/home.html", context)
 
 
@@ -409,6 +422,7 @@ def product_list(request, category_slug=None):
         "query": query,
         "wishlist_ids": wishlist_ids,
     }
+    context.update(seo_for_product_list(request, category=category, query=query))
     return render(request, "store/product_list.html", context)
 
 
@@ -428,18 +442,34 @@ def product_detail(request, id, slug):
     reviews = product.reviews.filter(is_approved=True)
     variants = product.variants.filter(is_active=True).order_by('value')
 
+    in_wishlist = (
+        request.user.is_authenticated
+        and Wishlist.objects.filter(user=request.user, product_id=product.id).exists()
+    )
     context = {
         "product": product,
         "images": images,
         "reviews": reviews,
         "variants": variants,
+        "in_wishlist": in_wishlist,
     }
+    context.update(seo_for_product(request, product))
     return render(request, "store/product_detail.html", context)
 
 
 def about(request):
     site_settings = SiteSettings.load()
-    return render(request, "store/about.html", {"site_settings": site_settings})
+    ctx = {"site_settings": site_settings}
+    ctx.update(seo_for_static_page(
+        request,
+        page_title='About Us',
+        description=(
+            'Learn about Priyanka Super Bazaar – your trusted neighbourhood grocery store '
+            'and supermarket. Fresh products, fair prices, and reliable delivery.'
+        ),
+        path_name='store:about',
+    ))
+    return render(request, "store/about.html", ctx)
 
 def contact(request):
     site_settings = SiteSettings.load()
@@ -457,7 +487,17 @@ def contact(request):
     else:
         form = ContactForm()
 
-    return render(request, "store/contact.html", {"form": form, "site_settings": site_settings})
+    ctx = {"form": form, "site_settings": site_settings}
+    ctx.update(seo_for_static_page(
+        request,
+        page_title='Contact Us',
+        description=(
+            'Contact Priyanka Super Bazaar for orders, product enquiries, and customer support. '
+            f'Phone: {site_settings.store_phone}. Email: {site_settings.store_email}.'
+        ),
+        path_name='store:contact',
+    ))
+    return render(request, "store/contact.html", ctx)
 
 def delivery_login(request):
     if request.method == 'POST':
@@ -470,7 +510,9 @@ def delivery_login(request):
             form.add_error(None, 'This account is not authorized for delivery access.')
     else:
         form = AuthenticationForm(request)
-    return render(request, 'store/delivery/login.html', {'form': form})
+    ctx = {'form': form}
+    ctx.update(seo_noindex(request, 'Delivery Login'))
+    return render(request, 'store/delivery/login.html', ctx)
 
 def delivery_logout(request):
     auth_logout(request)
@@ -484,11 +526,13 @@ def delivery_dashboard(request):
     active_orders = delivery_boy.get_active_orders()
     recent_deliveries = delivery_boy.delivery_orders.filter(status=Order.STATUS_DELIVERED).order_by('-modified')[:10]
 
-    return render(request, 'store/delivery/dashboard.html', {
+    ctx = {
         'delivery_boy': delivery_boy,
         'active_orders': active_orders,
         'recent_deliveries': recent_deliveries,
-    })
+    }
+    ctx.update(seo_noindex(request, 'Delivery Dashboard'))
+    return render(request, 'store/delivery/dashboard.html', ctx)
 
 def delivery_order_detail(request, order_number):
     if not request.user.is_authenticated or not hasattr(request.user, 'delivery_profile'):
@@ -510,12 +554,14 @@ def delivery_order_detail(request, order_number):
         ]
         map_query = ", ".join([p for p in parts if p])
 
-    return render(request, 'store/delivery/order_detail.html', {
+    ctx = {
         'order': order,
         'shipping_address': shipping_address,
         'map_query': map_query,
         'delivery_boy': delivery_boy,
-    })
+    }
+    ctx.update(seo_noindex(request, f'Order {order.order_number}'))
+    return render(request, 'store/delivery/order_detail.html', ctx)
 
 @require_POST
 def delivery_order_update(request, order_number):
@@ -643,6 +689,7 @@ def cart_detail(request):
         'items': items,
         'total_price': total_price,
     }
+    context.update(seo_noindex(request, 'Shopping Cart'))
     return render(request, 'store/cart.html', context)
 
 
@@ -904,25 +951,32 @@ def checkout(request):
         "applied_promo_code": applied_promo_code,
         "site_settings": site_settings,
     }
+    context.update(seo_noindex(request, 'Checkout'))
     return render(request, "store/checkout.html", context)
 
 
 def order_success(request, order_number):
     order = get_object_or_404(Order, order_number=order_number)
-    return render(request, "store/order_success.html", {"order": order})
+    ctx = {"order": order}
+    ctx.update(seo_noindex(request, 'Order Confirmation'))
+    return render(request, "store/order_success.html", ctx)
 
 
 @login_required
 def account_profile(request):
     """Simple My Account page showing basic user info."""
-    return render(request, "store/account_profile.html", {"user_obj": request.user})
+    ctx = {"user_obj": request.user}
+    ctx.update(seo_noindex(request, 'My Account'))
+    return render(request, "store/account_profile.html", ctx)
 
 
 @login_required
 def account_orders(request):
     """List of orders for the logged-in user."""
     orders = Order.objects.filter(user=request.user).order_by("-created")
-    return render(request, "store/account_orders.html", {"orders": orders})
+    ctx = {"orders": orders}
+    ctx.update(seo_noindex(request, 'My Orders'))
+    return render(request, "store/account_orders.html", ctx)
 
 
 def track_order(request):
@@ -937,14 +991,18 @@ def track_order(request):
             except Order.DoesNotExist:
                 order = None
 
-    return render(request, "store/order_track.html", {"order": order, "query": query})
+    ctx = {"order": order, "query": query}
+    ctx.update(seo_noindex(request, 'Track Order'))
+    return render(request, "store/order_track.html", ctx)
 
 
 @login_required(login_url='/customer/login/')
 def wishlist_view(request):
     """Display user's wishlist."""
     wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
-    return render(request, 'store/wishlist.html', {'wishlist_items': wishlist_items})
+    ctx = {'wishlist_items': wishlist_items}
+    ctx.update(seo_noindex(request, 'Wishlist'))
+    return render(request, 'store/wishlist.html', ctx)
 
 
 @login_required(login_url='/customer/login/')
@@ -1013,11 +1071,13 @@ def product_review_create(request, product_id):
     else:
         form = ProductReviewForm(instance=existing_review)
     
-    return render(request, 'store/product_review_form.html', {
+    ctx = {
         'form': form,
         'product': product,
-        'existing_review': existing_review
-    })
+        'existing_review': existing_review,
+    }
+    ctx.update(seo_noindex(request, f'Review {product.name}'))
+    return render(request, 'store/product_review_form.html', ctx)
 
 
 @login_required
@@ -1032,7 +1092,9 @@ def account_profile_edit(request):
     else:
         form = UserProfileForm(instance=request.user)
     
-    return render(request, 'store/account_profile_edit.html', {'form': form})
+    ctx = {'form': form}
+    ctx.update(seo_noindex(request, 'Edit Profile'))
+    return render(request, 'store/account_profile_edit.html', ctx)
 
 
 @login_required
@@ -1050,14 +1112,18 @@ def account_change_password(request):
     else:
         form = PasswordChangeForm(request.user)
     
-    return render(request, 'store/account_change_password.html', {'form': form})
+    ctx = {'form': form}
+    ctx.update(seo_noindex(request, 'Change Password'))
+    return render(request, 'store/account_change_password.html', ctx)
 
 
 @login_required
 def address_list(request):
     """List user addresses"""
     addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-created')
-    return render(request, 'store/address_list.html', {'addresses': addresses})
+    ctx = {'addresses': addresses}
+    ctx.update(seo_noindex(request, 'My Addresses'))
+    return render(request, 'store/address_list.html', ctx)
 
 
 @login_required
@@ -1075,7 +1141,9 @@ def address_create(request):
     else:
         form = AddressForm()
     
-    return render(request, 'store/address_form.html', {'form': form, 'title': 'Add Address'})
+    ctx = {'form': form, 'title': 'Add Address'}
+    ctx.update(seo_noindex(request, 'Add Address'))
+    return render(request, 'store/address_form.html', ctx)
 
 
 @login_required
@@ -1092,7 +1160,9 @@ def address_edit(request, address_id):
     else:
         form = AddressForm(instance=address)
     
-    return render(request, 'store/address_form.html', {'form': form, 'address': address, 'title': 'Edit Address'})
+    ctx = {'form': form, 'address': address, 'title': 'Edit Address'}
+    ctx.update(seo_noindex(request, 'Edit Address'))
+    return render(request, 'store/address_form.html', ctx)
 
 
 @login_required
@@ -1165,7 +1235,9 @@ def order_cancel(request, order_number):
         
         return redirect('store:account_orders')
     
-    return render(request, 'store/order_cancel_confirm.html', {'order': order})
+    ctx = {'order': order}
+    ctx.update(seo_noindex(request, 'Cancel Order'))
+    return render(request, 'store/order_cancel_confirm.html', ctx)
 
 
 @login_required

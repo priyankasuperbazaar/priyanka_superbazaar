@@ -1,4 +1,5 @@
 from .models import Category, Cart, SiteSettings, Wishlist
+from .seo import build_seo_context, DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, SITE_NAME
 
 
 def catalog(request):
@@ -42,3 +43,30 @@ def catalog(request):
         "wishlist_items_count": wishlist_items_count,
         "site_settings": site_settings,
     }
+
+
+_PRIVATE_PATH_PREFIXES = (
+    '/admin/', '/accounts/', '/api/', '/customer/', '/account/',
+    '/cart/', '/checkout/', '/wishlist/', '/delivery/', '/order/',
+    '/create-render-admin/',
+)
+
+
+def seo_defaults(request):
+    """Provide fallback SEO context for every template."""
+    site_settings = SiteSettings.load()
+    title = site_settings.meta_title or SITE_NAME
+    description = site_settings.meta_description or DEFAULT_DESCRIPTION
+    keywords = site_settings.meta_keywords or DEFAULT_KEYWORDS
+
+    if any(request.path.startswith(prefix) for prefix in _PRIVATE_PATH_PREFIXES):
+        from .seo import seo_noindex
+        return seo_noindex(request, title, description)
+
+    ctx = build_seo_context(
+        request,
+        title=title,
+        description=description,
+        keywords=keywords,
+    )
+    return ctx
